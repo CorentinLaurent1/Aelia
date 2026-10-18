@@ -15,6 +15,9 @@ const BOOKING_URLS = {
   // "Pack Éclat": "https://...",
 };
 
+// Mettre à true quand la réservation en ligne est prête : le formulaire remplace alors la pop-up « bientôt ».
+const BOOKING_OPEN = false;
+
 // Menu mobile
 const toggle = document.querySelector(".nav__toggle");
 const links = document.querySelector(".nav__links");
@@ -25,12 +28,21 @@ toggle.addEventListener("click", () => {
 links.addEventListener("click", () => links.classList.remove("open"));
 
 // Demande de rendez-vous
+const soon = document.getElementById("soon");
+soon.querySelector(".dialog__close").addEventListener("click", () => soon.close());
+soon.querySelector(".soon__later").addEventListener("click", () => soon.close());
+soon.addEventListener("click", (e) => { if (e.target === soon) soon.close(); });
+
 const dialog = document.getElementById("booking");
 const form = document.getElementById("booking-form");
 
 document.querySelectorAll("[data-book]").forEach((el) =>
   el.addEventListener("click", (e) => {
     e.preventDefault();
+    if (!BOOKING_OPEN) {
+      soon.showModal();
+      return;
+    }
     const url = BOOKING_URLS[el.dataset.book] || BOOKING_URL;
     if (url) {
       window.open(url, "_blank", "noopener");

@@ -211,3 +211,27 @@ dialog input, dialog select, dialog textarea { font: 300 .9rem var(--sans); padd
 .btn:disabled { opacity: .6; cursor: wait; }
 
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+/* Pop-up "en cours de développement" */
+#soon { overflow: hidden; text-align: center; padding: 0; width: min(460px, 92vw); border: 1px solid var(--line); }
+#soon[open] { animation: popIn .55s cubic-bezier(.2, 1.2, .3, 1) both; }
+#soon[open]::backdrop { animation: fadeIn .4s ease both; }
+@keyframes popIn { from { opacity: 0; transform: translateY(30px) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bow { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-14deg) translateY(3px); } 40% { transform: rotate(0); } 60% { transform: rotate(-14deg) translateY(3px); } 80% { transform: rotate(0); } }
+@keyframes rise { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: .55; } 100% { transform: translateY(-340px) scale(1.1) rotate(40deg); opacity: 0; } }
+.soon { position: relative; padding: 2.8rem 2rem 2rem; display: flex; flex-direction: column; align-items: center; gap: .9rem; background: radial-gradient(circle at 50% 0%, #fdf6f1, var(--bg) 70%); }
+.soon .dialog__close { top: .6rem; right: 1rem; z-index: 2; }
+.soon__logo { height: 4.2rem; width: auto; transform-origin: 50% 100%; animation: bow 2.6s ease-in-out .5s 2 both; z-index: 1; }
+.soon h3 { font-size: 2.2rem; color: var(--accent); }
+.soon__text { color: var(--muted); font-size: .95rem; max-width: 330px; }
+.soon .btn { margin-top: .6rem; }
+.soon__later { background: none; border: 0; font: 400 .8rem var(--sans); color: var(--muted); text-decoration: underline; cursor: pointer; }
+.soon__later:hover { color: var(--accent); }
+.soon__petals i { position: absolute; bottom: -20px; width: 14px; height: 14px; border-radius: 80% 0 80% 0; background: var(--accent); opacity: 0; animation: rise 5s ease-in infinite; }
+.soon__petals i:nth-child(1) { left: 8%; animation-delay: 0s; }
+.soon__petals i:nth-child(2) { left: 24%; animation-delay: 1.4s; width: 10px; height: 10px; }
+.soon__petals i:nth-child(3) { left: 42%; animation-delay: .7s; background: #e7c3ad; }
+.soon__petals i:nth-child(4) { left: 62%; animation-delay: 2.2s; width: 11px; height: 11px; }
+.soon__petals i:nth-child(5) { left: 80%; animation-delay: 1s; background: #e7c3ad; }
+.soon__petals i:nth-child(6) { left: 92%; animation-delay: 2.8s; width: 9px; height: 9px; }
