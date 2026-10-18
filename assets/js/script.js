@@ -68,3 +68,29 @@ document.getElementById("manage-cookies").addEventListener("click", (e) => {
   e.preventDefault();
   banner.hidden = false;
 });
+
+// Ombre de la barre de navigation au défilement
+const nav = document.querySelector(".nav");
+const onScroll = () => nav.classList.toggle("scrolled", window.scrollY > 10);
+onScroll();
+window.addEventListener("scroll", onScroll, { passive: true });
+
+// Apparition des éléments au défilement
+const targets = document.querySelectorAll(
+  ".section h2, .section .eyebrow, .group__head, .card, .pack, .about__photo, .about__text, .promise .grid > div, .cta > *"
+);
+targets.forEach((el) => {
+  el.classList.add("reveal");
+  const i = [...el.parentElement.children].indexOf(el);
+  el.style.setProperty("--d", `${Math.min(i, 4) * 0.12}s`);
+});
+if ("IntersectionObserver" in window) {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((en) => {
+      if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
+    });
+  }, { threshold: 0.12 });
+  targets.forEach((el) => io.observe(el));
+} else {
+  targets.forEach((el) => el.classList.add("in"));
+}

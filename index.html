@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Aélia · Conseil en Style et Image</title>
   <meta name="description" content="Prestations sur-mesure de conseil en style et image : analyse morphologique, colorimétrique, étude de style, tri de dressing et accompagnement shopping.">
-  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <script>document.documentElement.classList.add("js")</script>
+  <link rel="icon" type="image/png" sizes="64x64" href="assets/images/favicon-64.png">
+  <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
@@ -15,7 +17,7 @@
 
 <header class="nav">
   <div class="nav__inner">
-    <a href="#top" class="logo"><span class="logo__mark">&#10086;</span> AÉLIA</a>
+    <a href="#top" class="logo" aria-label="Aélia, accueil"><img class="logo__img" src="assets/images/monogramme.png" alt="" width="36" height="42"><span>AÉLIA</span></a>
     <button class="nav__toggle" aria-label="Menu" aria-expanded="false"><span></span><span></span></button>
     <nav class="nav__links">
       <a href="#prestations">Prestations</a>
@@ -28,21 +30,25 @@
 
 <main id="top">
   <section class="hero">
+    <img class="hero__logo" src="assets/images/monogramme.png" alt="Monogramme Aélia" width="70" height="81">
     <p class="eyebrow">Conseil en style et image</p>
     <h1>Révélez votre style,<br><em>affirmez qui vous êtes.</em></h1>
     <p class="hero__text">Des prestations sur-mesure pour révéler votre style, valoriser votre image et renforcer votre confiance, avec douceur, bienveillance et professionnalisme.</p>
     <div class="hero__cta">
-      <a href="#" class="btn" data-book="">Prendre rendez-vous</a>
-      <a href="#prestations" class="btn btn--outline">Découvrir les prestations</a>
+      <a href="#" class="btn btn--lg" data-book="">Prendre rendez-vous</a>
+      <a href="#prestations" class="btn btn--outline btn--lg">Découvrir les prestations</a>
     </div>
   </section>
 
   <section class="section section--alt" id="prestations">
     <p class="eyebrow">Mes prestations</p>
     <h2>Un accompagnement pensé pour vous</h2>
-    <div class="grid grid--3">
-      <article class="card">
-        <header><h3>Analyse morphologique</h3><p class="meta">1h · <strong>70 €</strong></p></header>
+    <p class="lead">Cinq prestations, à la carte ou en pack, pour avancer à votre rythme.</p>
+    <div class="group">
+      <div class="group__head"><span class="group__num">01</span><div><h3>Comprendre</h3><p>Les bases pour savoir ce qui vous met en valeur.</p></div></div>
+      <div class="grid grid--2">
+        <article class="card">
+        <header><h4>Analyse morphologique</h4><p class="meta">1h · <strong>70 €</strong></p></header>
         <p>Comprenez votre silhouette pour choisir les coupes, matières et volumes qui vous mettent en valeur et vous font vous sentir bien.</p>
         <ul>
           <li>Étude de votre silhouette et de vos proportions</li>
@@ -51,9 +57,8 @@
         </ul>
         <a href="#" class="card__link" data-book="Analyse morphologique">Réserver ce rendez-vous →</a>
       </article>
-
-      <article class="card">
-        <header><h3>Analyse colorimétrique</h3><p class="meta">1h30 · <strong>105 €</strong></p></header>
+        <article class="card">
+        <header><h4>Analyse colorimétrique</h4><p class="meta">1h30 · <strong>105 €</strong></p></header>
         <p>Découvrez les couleurs qui illuminent votre teint, mettent en valeur votre visage et subliment vos tenues au quotidien.</p>
         <ul>
           <li>Analyse de vos sous-tons et de votre harmonie colorielle</li>
@@ -62,9 +67,13 @@
         </ul>
         <a href="#" class="card__link" data-book="Analyse colorimétrique">Réserver ce rendez-vous →</a>
       </article>
-
-      <article class="card">
-        <header><h3>Étude de style personnalisée</h3><p class="meta">2h · <strong>140 €</strong></p></header>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group__head"><span class="group__num">02</span><div><h3>Définir</h3><p>Construire un style et un dressing qui vous ressemblent.</p></div></div>
+      <div class="grid grid--2">
+        <article class="card">
+        <header><h4>Étude de style personnalisée</h4><p class="meta">2h · <strong>140 €</strong></p></header>
         <p>Définissons ensemble un style qui vous ressemble, en accord avec votre personnalité, votre mode de vie et l'image que vous souhaitez renvoyer.</p>
         <ul>
           <li>Échange approfondi sur vos envies et besoins</li>
@@ -73,9 +82,8 @@
         </ul>
         <a href="#" class="card__link" data-book="Étude de style personnalisée">Réserver ce rendez-vous →</a>
       </article>
-
-      <article class="card">
-        <header><h3>Tri de dressing</h3><p class="meta">3h · <strong>210 €</strong></p></header>
+        <article class="card">
+        <header><h4>Tri de dressing</h4><p class="meta">3h · <strong>210 €</strong></p></header>
         <p>Faites le tri dans votre dressing pour ne garder que ce qui vous met en valeur et vous correspond vraiment.</p>
         <ul>
           <li>Tri et sélection des pièces à garder</li>
@@ -84,21 +92,27 @@
         </ul>
         <a href="#" class="card__link" data-book="Tri de dressing">Réserver ce rendez-vous →</a>
       </article>
-
-      <article class="card">
-        <header><h3>Accompagnement shopping</h3><p class="meta">à partir de <strong>70 €</strong></p></header>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group__head"><span class="group__num">03</span><div><h3>Passer à l'action</h3><p>Un accompagnement concret pour vos achats.</p></div></div>
+      <div class="grid grid--1">
+        <article class="card card--wide">
+        <header><h4>Accompagnement shopping</h4><p class="meta">à partir de <strong>70 €</strong></p></header>
         <p>Je vous accompagne lors de vos achats pour choisir les pièces adaptées à votre morphologie, votre style, vos besoins et votre budget.</p>
         <div class="chips">
           <span>1h<b>70 €</b></span><span>2h<b>140 €</b></span><span>3h<b>210 €</b></span><span>+1h<b>70 €</b></span>
         </div>
         <a href="#" class="card__link" data-book="Accompagnement shopping">Réserver ce rendez-vous →</a>
       </article>
+      </div>
     </div>
-  </section>
+    </section>
 
   <section class="section" id="formules">
     <p class="eyebrow">Formules</p>
     <h2>Les packs Aélia</h2>
+    <p class="lead">Associez plusieurs prestations et bénéficiez de 60 € d'économie.</p>
     <div class="grid grid--3 packs">
       <article class="pack">
         <h3>Pack Éclat</h3>
@@ -146,9 +160,8 @@
 
   <section class="section section--alt about" id="apropos">
     <div class="about__inner">
-      <div class="about__photo" role="img" aria-label="Portrait de Laësia Laurent">
-        <!-- Remplacez par : <img src="assets/images/laesia.jpg" alt="Laësia Laurent"> -->
-        <span>L</span>
+      <div class="about__photo">
+        <img src="assets/images/laesia.jpg" alt="Laësia Laurent, conseillère en style et image, avec son diplôme de l'Atelier Chardon Savard" width="520" height="693" loading="lazy">
       </div>
       <div class="about__text">
         <p class="eyebrow">À propos</p>
@@ -180,7 +193,7 @@
 <footer class="footer">
   <div class="footer__inner">
     <div>
-      <p class="logo">AÉLIA <small>Conseil en style et image</small></p>
+      <img class="footer__logo" src="assets/images/logo-aelia.png" alt="Aélia, conseil en style et image" width="170" height="122" loading="lazy">
       <p class="footer__tag">Parce que chaque femme est unique, <em>votre style doit l'être aussi.</em></p>
     </div>
     <div class="footer__legal">
