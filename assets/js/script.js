@@ -1,5 +1,10 @@
 // Adresse qui reçoit les demandes de rendez-vous (à remplacer)
-const CONTACT_EMAIL = "contact@aelia.fr";
+const CONTACT_EMAIL = "aelia.bylaesia@gmail.com";
+
+// Route du serveur (server.js) qui envoie l'e-mail. Vide = repli sur la messagerie du visiteur.
+// Une fois renseigné, la demande part directement, sans passer par la messagerie du visiteur,
+// et un message de confirmation s'affiche.
+const FORM_ENDPOINT = "/api/contact";
 
 // Outil de réservation + paiement (Calendly, Stripe Payment Link, Planity…).
 // Si renseigné, les boutons y mènent directement ; sinon le formulaire s'ouvre.
@@ -32,17 +37,57 @@ document.querySelectorAll("[data-book]").forEach((el) =>
       return;
     }
     form.service.value = el.dataset.book || "";
+    status.hidden = true;
     dialog.showModal();
   })
 );
 dialog.querySelector(".dialog__close").addEventListener("click", () => dialog.close());
 dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });
 
-form.addEventListener("submit", () => {
+const status = document.getElementById("booking-status");
+const submitBtn = form.querySelector("button[type=submit]");
+
+function showStatus(msg, ok) {
+  status.textContent = msg;
+  status.className = "form-status " + (ok ? "form-status--ok" : "form-status--error");
+  status.hidden = false;
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
   const d = new FormData(form);
-  const subject = encodeURIComponent(`Demande de rendez-vous : ${d.get("service")}`);
-  const body = encodeURIComponent(`Nom : ${d.get("name")}\nE-mail : ${d.get("email")}\n\n${d.get("msg")}`);
-  window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
+  status.hidden = true;
+
+  // Sans service d'envoi configuré : repli sur le logiciel de messagerie
+  if (!FORM_ENDPOINT) {
+    const subject = encodeURIComponent(`Demande de rendez-vous : ${d.get("service")}`);
+    const body = encodeURIComponent(`Nom : ${d.get("name")}
+E-mail : ${d.get("email")}
+
+${d.get("msg")}`);
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
+    showStatus("Votre application de messagerie s'ouvre : cliquez sur « Envoyer » pour finaliser votre demande.", true);
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Envoi en cours…";
+  try {
+    const res = await fetch(FORM_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(Object.fromEntries(d)),
+    });
+    if (!res.ok) throw new Error(res.status);
+    form.reset();
+    showStatus("Merci ! Votre demande a bien été envoyée. Je vous réponds très vite.", true);
+    submitBtn.textContent = "Demande envoyée ✓";
+    setTimeout(() => { dialog.close(); submitBtn.disabled = false; submitBtn.textContent = "Envoyer ma demande"; status.hidden = true; }, 3500);
+  } catch {
+    showStatus(`L'envoi a échoué. Réessayez ou écrivez-moi directement à ${CONTACT_EMAIL}.`, false);
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Envoyer ma demande";
+  }
 });
 
 // Bandeau cookies

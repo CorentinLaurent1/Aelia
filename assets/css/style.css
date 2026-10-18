@@ -203,3 +203,11 @@ dialog input, dialog select, dialog textarea { font: 300 .9rem var(--sans); padd
 }
 
 .legal h1 { font-size: 2.6rem; }
+
+.form-status { padding: .7rem 1rem; border-radius: 10px; font-size: .88rem; }
+.form-status[hidden] { display: none; }
+.form-status--ok { background: #e6f0e4; color: #35572f; }
+.form-status--error { background: #f8dcd5; color: #8a2f1c; }
+.btn:disabled { opacity: .6; cursor: wait; }
+
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
