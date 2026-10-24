@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Aélia · Conseil en Style et Image</title>
   <meta name="description" content="Prestations sur-mesure de conseil en style et image : analyse morphologique, colorimétrique, étude de style, tri de dressing et accompagnement shopping.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:site_name" content="Aélia">
+  <meta property="og:title" content="Aélia · Conseil en Style et Image">
+  <meta property="og:description" content="Révélez votre style, affirmez qui vous êtes. Analyse morphologique, colorimétrique, étude de style, tri de dressing et shopping.">
+  <meta name="theme-color" content="#c4694a">
   <script>document.documentElement.classList.add("js")</script>
   <link rel="icon" type="image/png" sizes="64x64" href="assets/images/favicon-64.png">
   <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
@@ -185,7 +191,7 @@
 
   <section class="section section--alt cta">
     <h2>Prête à révéler <em>votre</em> style ?</h2>
-    <p>Choisissez votre prestation et votre créneau, puis réglez en ligne en toute sécurité. Votre rendez-vous est confirmé immédiatement.</p>
+    <p>Choisissez la prestation qui vous correspond et prenez contact : je reviens vers vous pour convenir ensemble d'un rendez-vous.</p>
     <a href="#" class="btn" data-book="">Prendre rendez-vous</a>
   </section>
 </main>
@@ -199,6 +205,7 @@
     <div class="footer__legal">
       <span>© 2026 Aélia. Tous droits réservés.</span>
       <a href="pages/mentions-legales.html">Mentions légales</a>
+      <a href="pages/cgv.html">CGV</a>
       <a href="pages/confidentialite.html">Politique de confidentialité</a>
       <a href="#" id="manage-cookies">Gérer les cookies</a>
     </div>
@@ -220,31 +227,50 @@
   </div>
 </dialog>
 
-<!-- Fenêtre de demande de rendez-vous -->
-<dialog id="booking">
-  <form id="booking-form">
-    <button type="button" class="dialog__close" aria-label="Fermer">×</button>
-    <h3>Prendre rendez-vous</h3>
-    <label>Prestation
-      <select name="service" required>
-        <option value="">Choisir…</option>
-        <option>Analyse morphologique</option>
-        <option>Analyse colorimétrique</option>
-        <option>Étude de style personnalisée</option>
-        <option>Tri de dressing</option>
-        <option>Accompagnement shopping</option>
-        <option>Pack Éclat</option>
-        <option>Pack Signature</option>
-        <option>Pack Renaissance</option>
-      </select>
-    </label>
-    <label>Nom <input name="name" required autocomplete="name"></label>
-    <label>E-mail <input type="email" name="email" required autocomplete="email"></label>
-    <label>Message (disponibilités, questions…) <textarea name="msg" rows="3"></textarea></label>
-    <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="hp">
-    <p class="form-status" id="booking-status" role="status" aria-live="polite" hidden></p>
-    <button class="btn" type="submit">Envoyer ma demande</button>
-  </form>
+<!-- Réservation en ligne, synchronisée avec l'agenda -->
+<dialog id="booking" aria-labelledby="bk-title">
+  <button type="button" class="dialog__close" aria-label="Fermer">×</button>
+  <div class="booking__body">
+    <p class="eyebrow">Réservation</p>
+    <h3 id="bk-title">Prendre rendez-vous</h3>
+
+    <div id="bk-pick">
+      <label class="bk-field">Prestation
+        <select id="bk-service"></select>
+      </label>
+      <div class="cal">
+        <div class="cal__head">
+          <button type="button" id="bk-prev" aria-label="Mois précédent">‹</button>
+          <strong id="bk-month"></strong>
+          <button type="button" id="bk-next" aria-label="Mois suivant">›</button>
+        </div>
+        <div class="cal__grid" id="bk-grid"></div>
+      </div>
+      <p class="bk-hint" id="bk-hint" role="status" aria-live="polite"></p>
+      <div class="slots" id="bk-slots"></div>
+    </div>
+
+    <form id="bk-form" hidden>
+      <div class="bk-summary" id="bk-summary"></div>
+      <button type="button" class="bk-back" id="bk-back">← Changer de créneau</button>
+      <label>Nom <input name="name" required maxlength="100" autocomplete="name"></label>
+      <label>E-mail <input type="email" name="email" required maxlength="150" autocomplete="email"></label>
+      <label>Téléphone (facultatif) <input type="tel" name="phone" maxlength="30" autocomplete="tel"></label>
+      <label>Message (vos attentes, questions…) <textarea name="msg" rows="3" maxlength="2000"></textarea></label>
+      <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="hp">
+      <p class="form-note">Les informations saisies servent uniquement à gérer votre rendez-vous. <a href="pages/confidentialite.html">En savoir plus</a></p>
+      <p class="form-status" id="bk-status" role="status" aria-live="polite" hidden></p>
+      <button class="btn" type="submit" id="bk-submit">Confirmer le rendez-vous</button>
+    </form>
+
+    <div id="bk-done" class="bk-done" hidden>
+      <img src="assets/images/monogramme.png" alt="" width="56" height="65">
+      <h4>Rendez-vous confirmé</h4>
+      <p id="bk-done-text"></p>
+      <p class="form-note">Un e-mail de confirmation avec l'invitation à ajouter à votre agenda vient de vous être envoyé. Je vous précise très vite les modalités pratiques et de règlement.</p>
+      <button type="button" class="btn" id="bk-close-done">Fermer</button>
+    </div>
+  </div>
 </dialog>
 
 <!-- Bandeau cookies -->
@@ -256,6 +282,6 @@
   </div>
 </div>
 
-<script src="assets/js/script.js"></script>
+<script src="assets/js/script.js" defer></script>
 </body>
 </html>

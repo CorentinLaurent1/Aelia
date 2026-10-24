@@ -1,22 +1,6 @@
-// Adresse qui reçoit les demandes de rendez-vous (à remplacer)
+// Adresse affichée en cas de problème
 const CONTACT_EMAIL = "aelia.bylaesia@gmail.com";
-
-// Route du serveur (server.js) qui envoie l'e-mail. Vide = repli sur la messagerie du visiteur.
-// Une fois renseigné, la demande part directement, sans passer par la messagerie du visiteur,
-// et un message de confirmation s'affiche.
-const FORM_ENDPOINT = "/api/contact";
-
-// Outil de réservation + paiement (Calendly, Stripe Payment Link, Planity…).
-// Si renseigné, les boutons y mènent directement ; sinon le formulaire s'ouvre.
-// BOOKING_URLS : lien par prestation (clé = texte du bouton), BOOKING_URL : lien par défaut.
-const BOOKING_URL = "";
-const BOOKING_URLS = {
-  // "Analyse morphologique": "https://...",
-  // "Pack Éclat": "https://...",
-};
-
-// Mettre à true quand la réservation en ligne est prête : le formulaire remplace alors la pop-up « bientôt ».
-const BOOKING_OPEN = false;
+const TZ = "Europe/Paris";
 
 // Menu mobile
 const toggle = document.querySelector(".nav__toggle");
@@ -27,80 +11,207 @@ toggle.addEventListener("click", () => {
 });
 links.addEventListener("click", () => links.classList.remove("open"));
 
-// Demande de rendez-vous
+// ---------- Pop-up « bientôt » (affichée tant que l'agenda n'est pas relié) ----------
 const soon = document.getElementById("soon");
 soon.querySelector(".dialog__close").addEventListener("click", () => soon.close());
 soon.querySelector(".soon__later").addEventListener("click", () => soon.close());
 soon.addEventListener("click", (e) => { if (e.target === soon) soon.close(); });
 
-const dialog = document.getElementById("booking");
-const form = document.getElementById("booking-form");
+// ---------- Réservation synchronisée avec l'agenda ----------
+const dlg = document.getElementById("booking");
+const $ = (id) => document.getElementById(id);
+const el = {
+  service: $("bk-service"), month: $("bk-month"), grid: $("bk-grid"), hint: $("bk-hint"), slots: $("bk-slots"),
+  prev: $("bk-prev"), next: $("bk-next"), pick: $("bk-pick"), form: $("bk-form"), summary: $("bk-summary"),
+  back: $("bk-back"), status: $("bk-status"), submit: $("bk-submit"), done: $("bk-done"), doneText: $("bk-done-text"),
+};
 
-document.querySelectorAll("[data-book]").forEach((el) =>
-  el.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (!BOOKING_OPEN) {
-      soon.showModal();
-      return;
-    }
-    const url = BOOKING_URLS[el.dataset.book] || BOOKING_URL;
-    if (url) {
-      window.open(url, "_blank", "noopener");
-      return;
-    }
-    form.service.value = el.dataset.book || "";
-    status.hidden = true;
-    dialog.showModal();
-  })
-);
-dialog.querySelector(".dialog__close").addEventListener("click", () => dialog.close());
-dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });
+const state = { services: null, serviceId: "", month: null, slots: {}, day: null, start: null, busy: false };
 
-const status = document.getElementById("booking-status");
-const submitBtn = form.querySelector("button[type=submit]");
+const pad = (n) => String(n).padStart(2, "0");
+const keyOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+const timeFmt = new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
+const longFmt = new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+const monthFmt = new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", month: "long", year: "numeric" });
+const dayFmt = new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" });
 
-function showStatus(msg, ok) {
-  status.textContent = msg;
-  status.className = "form-status " + (ok ? "form-status--ok" : "form-status--error");
-  status.hidden = false;
+async function loadServices() {
+  if (state.services) return state.services;
+  const res = await fetch("/api/services", { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(res.status);
+  const data = await res.json();
+  if (!data.bookingEnabled) throw new Error("disabled");
+  state.services = data.services;
+  el.service.innerHTML = '<option value="">Choisir une prestation…</option>' +
+    data.services.map((s) => `<option value="${s.id}">${s.name} · ${s.price}</option>`).join("");
+  return state.services;
 }
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const d = new FormData(form);
-  status.hidden = true;
+function serviceIdFor(label) {
+  if (!label) return "";
+  const hit = state.services.find((s) => s.name === label);
+  if (hit) return hit.id;
+  if (label === "Accompagnement shopping") return "shopping-1h";
+  return "";
+}
 
-  // Sans service d'envoi configuré : repli sur le logiciel de messagerie
-  if (!FORM_ENDPOINT) {
-    const subject = encodeURIComponent(`Demande de rendez-vous : ${d.get("service")}`);
-    const body = encodeURIComponent(`Nom : ${d.get("name")}
-E-mail : ${d.get("email")}
+function showStep(step) {
+  el.pick.hidden = step !== "pick";
+  el.form.hidden = step !== "form";
+  el.done.hidden = step !== "done";
+  dlg.querySelector(".booking__body").scrollTop = 0;
+}
 
-${d.get("msg")}`);
-    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
-    showStatus("Votre application de messagerie s'ouvre : cliquez sur « Envoyer » pour finaliser votre demande.", true);
+async function loadMonth() {
+  const { y, m } = state.month;
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  el.month.textContent = monthFmt.format(new Date(Date.UTC(y, m, 1)));
+  state.slots = {};
+  state.day = null;
+  el.slots.innerHTML = "";
+  if (!state.serviceId) {
+    renderGrid();
+    el.hint.textContent = "Choisissez d'abord une prestation.";
     return;
   }
-
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Envoi en cours…";
+  el.hint.textContent = "Chargement des disponibilités…";
+  el.grid.classList.add("loading");
   try {
-    const res = await fetch(FORM_ENDPOINT, {
+    const q = new URLSearchParams({ service: state.serviceId, from: keyOf(y, m, 1), to: keyOf(y, m, last) });
+    const res = await fetch(`/api/availability?${q}`);
+    if (!res.ok) throw new Error(res.status);
+    state.slots = (await res.json()).slots;
+    const n = Object.keys(state.slots).length;
+    el.hint.textContent = n ? "Choisissez un jour." : "Aucune disponibilité ce mois-ci : essayez le mois suivant.";
+  } catch {
+    el.hint.textContent = `Agenda momentanément indisponible. Écrivez-moi à ${CONTACT_EMAIL}.`;
+  }
+  el.grid.classList.remove("loading");
+  renderGrid();
+}
+
+function renderGrid() {
+  const { y, m } = state.month;
+  const offset = (new Date(Date.UTC(y, m, 1)).getUTCDay() + 6) % 7; // lundi = 0
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  let html = ["L", "M", "M", "J", "V", "S", "D"].map((d) => `<span class="cal-dow">${d}</span>`).join("");
+  html += '<span></span>'.repeat(offset);
+  for (let d = 1; d <= last; d++) {
+    const key = keyOf(y, m, d);
+    const ok = Boolean(state.slots[key]);
+    html += `<button type="button" class="cal-day${ok ? " ok" : ""}${key === state.day ? " sel" : ""}" data-day="${key}" ${ok ? "" : "disabled"}>${d}</button>`;
+  }
+  el.grid.innerHTML = html;
+  const now = new Date();
+  el.prev.disabled = y === now.getFullYear() && m <= now.getMonth();
+}
+
+function renderSlots() {
+  const list = state.slots[state.day] || [];
+  const label = dayFmt.format(new Date(state.day + "T12:00:00Z"));
+  el.hint.textContent = `Créneaux du ${label}`;
+  el.slots.innerHTML = list.map((iso) => `<button type="button" class="slot" data-start="${iso}">${timeFmt.format(new Date(iso))}</button>`).join("");
+}
+
+function serviceById(id) { return state.services.find((s) => s.id === id); }
+
+async function openBooking(label) {
+  let services;
+  try {
+    services = await loadServices();
+  } catch {
+    soon.showModal(); // réservation pas encore active
+    return;
+  }
+  state.serviceId = serviceIdFor(label);
+  el.service.value = state.serviceId;
+  const now = new Date();
+  state.month = { y: now.getFullYear(), m: now.getMonth() };
+  el.status.hidden = true;
+  showStep("pick");
+  dlg.showModal();
+  loadMonth();
+}
+
+document.querySelectorAll("[data-book]").forEach((a) =>
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    openBooking(a.dataset.book);
+  })
+);
+dlg.querySelector(".dialog__close").addEventListener("click", () => dlg.close());
+dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+
+el.service.addEventListener("change", () => { state.serviceId = el.service.value; loadMonth(); });
+el.prev.addEventListener("click", () => { state.month = shiftMonth(-1); loadMonth(); });
+el.next.addEventListener("click", () => { state.month = shiftMonth(1); loadMonth(); });
+function shiftMonth(delta) {
+  const d = new Date(Date.UTC(state.month.y, state.month.m + delta, 1));
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth() };
+}
+
+el.grid.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-day]");
+  if (!b || b.disabled) return;
+  state.day = b.dataset.day;
+  renderGrid();
+  renderSlots();
+});
+
+el.slots.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-start]");
+  if (!b) return;
+  state.start = b.dataset.start;
+  const s = serviceById(state.serviceId);
+  const when = longFmt.format(new Date(state.start));
+  el.summary.innerHTML = `<b>${s.name}</b> · ${s.price}<br>${when}`;
+  el.status.hidden = true;
+  showStep("form");
+});
+
+el.back.addEventListener("click", () => showStep("pick"));
+
+function showStatus(msg, ok) {
+  el.status.textContent = msg;
+  el.status.className = "form-status " + (ok ? "form-status--ok" : "form-status--error");
+  el.status.hidden = false;
+}
+
+el.form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (state.busy) return;
+  state.busy = true;
+  el.status.hidden = true;
+  el.submit.disabled = true;
+  el.submit.textContent = "Réservation en cours…";
+  const d = Object.fromEntries(new FormData(el.form));
+  try {
+    const res = await fetch("/api/book", {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(Object.fromEntries(d)),
+      body: JSON.stringify({ ...d, service: state.serviceId, start: state.start }),
     });
-    if (!res.ok) throw new Error(res.status);
-    form.reset();
-    showStatus("Merci ! Votre demande a bien été envoyée. Je vous réponds très vite.", true);
-    submitBtn.textContent = "Demande envoyée ✓";
-    setTimeout(() => { dialog.close(); submitBtn.disabled = false; submitBtn.textContent = "Envoyer ma demande"; status.hidden = true; }, 3500);
-  } catch {
-    showStatus(`L'envoi a échoué. Réessayez ou écrivez-moi directement à ${CONTACT_EMAIL}.`, false);
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Envoyer ma demande";
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 409) {
+      // créneau pris entre-temps : retour au calendrier mis à jour
+      showStep("pick");
+      await loadMonth();
+      el.hint.textContent = data.error || "Ce créneau vient d'être pris. Choisissez-en un autre.";
+      return;
+    }
+    if (!res.ok) throw new Error(data.error || res.status);
+    el.form.reset();
+    el.doneText.innerHTML = `<b>${state.services && serviceById(state.serviceId).name}</b><br>${data.when || longFmt.format(new Date(state.start))}`;
+    showStep("done");
+  } catch (err) {
+    showStatus(`La réservation a échoué. Réessayez ou écrivez-moi à ${CONTACT_EMAIL}.`, false);
+  } finally {
+    state.busy = false;
+    el.submit.disabled = false;
+    el.submit.textContent = "Confirmer le rendez-vous";
   }
 });
+$("bk-close-done").addEventListener("click", () => dlg.close());
 
 // Bandeau cookies
 const banner = document.getElementById("cookies");
@@ -136,10 +247,10 @@ window.addEventListener("scroll", onScroll, { passive: true });
 const targets = document.querySelectorAll(
   ".section h2, .section .eyebrow, .group__head, .card, .pack, .about__photo, .about__text, .promise .grid > div, .cta > *"
 );
-targets.forEach((el) => {
-  el.classList.add("reveal");
-  const i = [...el.parentElement.children].indexOf(el);
-  el.style.setProperty("--d", `${Math.min(i, 4) * 0.12}s`);
+targets.forEach((t) => {
+  t.classList.add("reveal");
+  const i = [...t.parentElement.children].indexOf(t);
+  t.style.setProperty("--d", `${Math.min(i, 4) * 0.12}s`);
 });
 if ("IntersectionObserver" in window) {
   const io = new IntersectionObserver((entries) => {
@@ -147,7 +258,7 @@ if ("IntersectionObserver" in window) {
       if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
     });
   }, { threshold: 0.12 });
-  targets.forEach((el) => io.observe(el));
+  targets.forEach((t) => io.observe(t));
 } else {
-  targets.forEach((el) => el.classList.add("in"));
+  targets.forEach((t) => t.classList.add("in"));
 }

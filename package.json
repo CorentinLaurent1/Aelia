@@ -4,7 +4,17 @@
   "private": true,
   "description": "Site vitrine Aélia avec envoi des demandes de rendez-vous par e-mail",
   "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "engines": { "node": ">=18" },
-  "dependencies": { "express": "^4.19.2", "nodemailer": "^6.9.14" }
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "luxon": "^3.7.2",
+    "node-ical": "^0.27.3",
+    "nodemailer": "^6.9.14",
+    "tsdav": "^2.5.0"
+  }
 }

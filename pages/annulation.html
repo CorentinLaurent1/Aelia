@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Gérer mon rendez-vous · Aélia</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" sizes="64x64" href="/assets/images/favicon-64.png">
+<link rel="stylesheet" href="/assets/css/style.css"></head><body>
+<header class="nav"><div class="nav__inner"><a href="/" class="logo"><img class="logo__img" src="/assets/images/monogramme.png" alt="" width="36" height="42"><span>AÉLIA</span></a><a href="/" class="btn btn--small btn--outline">← Retour au site</a></div></header>
+<main class="notfound manage">
+  <img src="/assets/images/monogramme.png" alt="" width="70" height="81">
+  <h1>Votre rendez-vous</h1>
+  <p id="m-loading">Chargement…</p>
+  <div id="m-details" hidden>
+    <p class="manage__when" id="m-when"></p>
+    <p id="m-info"></p>
+    <button class="btn" id="m-cancel" type="button">Annuler ce rendez-vous</button>
+    <p class="form-note">Pour <b>modifier</b> la date, annulez d'abord ce rendez-vous puis réservez un nouveau créneau.</p>
+  </div>
+  <p class="form-status" id="m-status" role="status" hidden></p>
+  <a class="btn btn--outline" id="m-again" href="/#prestations" hidden>Réserver un nouveau rendez-vous</a>
+</main>
+<script src="/assets/js/cancel.js" defer></script>
+</body></html>

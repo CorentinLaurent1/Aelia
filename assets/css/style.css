@@ -237,3 +237,45 @@ dialog input, dialog select, dialog textarea { font: 300 .9rem var(--sans); padd
 .soon__petals i:nth-child(6) { left: 92%; animation-delay: 2.8s; width: 9px; height: 9px; }
 
 .soon__mail { margin-top: .4rem; font: italic 1.5rem var(--serif); color: var(--accent); user-select: all; }
+
+.form-note { font-size: .75rem; color: var(--muted); }
+.form-note a { color: var(--accent); text-decoration: underline; }
+.notfound { text-align: center; padding: 6rem 1.5rem; }
+.notfound img { height: 5rem; margin-bottom: 1.5rem; }
+.notfound p { color: var(--muted); margin: 1rem 0 2rem; }
+
+/* Réservation */
+#booking { width: min(520px, 94vw); max-height: 94vh; padding: 0; overflow: hidden; border: 1px solid var(--line); position: relative; }
+#booking[open] { animation: popIn .45s cubic-bezier(.2, 1.1, .3, 1) both; }
+#booking[open]::backdrop { animation: fadeIn .4s ease both; }
+#booking .dialog__close { position: absolute; z-index: 2; top: .7rem; right: 1rem; }
+.booking__body { padding: 2.2rem 2rem 2rem; max-height: 94vh; overflow-y: auto; display: grid; gap: 1rem; }
+.booking__body .eyebrow { margin-bottom: 0; justify-self: start; }
+.booking__body h3 { font-size: 2rem; color: var(--accent); }
+.bk-field { display: grid; gap: .3rem; font-size: .8rem; color: var(--muted); }
+.bk-field select, #bk-form input, #bk-form textarea { font: 300 .95rem var(--sans); padding: .65rem .8rem; border: 1px solid var(--line); border-radius: 10px; background: #fff8f4; color: var(--text); width: 100%; }
+#bk-form { display: grid; gap: 1rem; }
+#bk-form label { display: grid; gap: .3rem; font-size: .8rem; color: var(--muted); }
+.cal { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; background: #fff8f4; }
+.cal__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .6rem; text-transform: capitalize; font-family: var(--serif); font-size: 1.3rem; }
+.cal__head button { width: 2.2rem; height: 2.2rem; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); color: var(--accent); font-size: 1.2rem; cursor: pointer; }
+.cal__head button:disabled { opacity: .3; cursor: default; }
+.cal__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: .3rem; text-align: center; transition: opacity .2s; }
+.cal__grid.loading { opacity: .4; }
+.cal-dow { font-size: .7rem; color: var(--muted); padding-bottom: .2rem; }
+.cal-day { aspect-ratio: 1; border: 0; border-radius: 50%; background: none; font: 300 .9rem var(--sans); color: #b9aaa3; cursor: default; }
+.cal-day.ok { color: var(--text); font-weight: 500; background: var(--bg-alt); cursor: pointer; transition: transform .15s, background .2s; }
+.cal-day.ok:hover { transform: scale(1.1); background: var(--line); }
+.cal-day.sel { background: var(--accent); color: #fff; }
+.bk-hint { font-size: .85rem; color: var(--muted); min-height: 1.3rem; text-transform: none; }
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: .5rem; }
+.slot { padding: .55rem 0; border: 1px solid var(--accent); border-radius: 999px; background: none; color: var(--accent); font: 400 .85rem var(--sans); cursor: pointer; transition: .2s; animation: fadeUp .35s both; }
+.slot:hover { background: var(--accent); color: #fff; }
+.bk-summary { background: var(--bg-alt); border-left: 3px solid var(--accent); border-radius: 8px; padding: .8rem 1rem; font-size: .9rem; text-transform: capitalize; }
+.bk-summary b { text-transform: none; }
+.bk-back { justify-self: start; background: none; border: 0; color: var(--accent); font: 400 .8rem var(--sans); cursor: pointer; text-decoration: underline; padding: 0; }
+.bk-done { display: grid; justify-items: center; gap: .8rem; text-align: center; padding: 1rem 0; }
+.bk-done h4 { font: 400 1.9rem var(--serif); color: var(--accent); }
+.bk-done > p:first-of-type { text-transform: capitalize; }
+
+[hidden] { display: none !important; }
