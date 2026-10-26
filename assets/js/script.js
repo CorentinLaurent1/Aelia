@@ -21,7 +21,7 @@ soon.addEventListener("click", (e) => { if (e.target === soon) soon.close(); });
 const dlg = document.getElementById("booking");
 const $ = (id) => document.getElementById(id);
 const el = {
-  service: $("bk-service"), month: $("bk-month"), grid: $("bk-grid"), hint: $("bk-hint"), slots: $("bk-slots"),
+  service: $("bk-service"), month: $("bk-month"), grid: $("bk-grid"), guideTitle: $("bk-guide-title"), guideText: $("bk-guide-text"), cal: $("bk-cal"), slots: $("bk-slots"),
   prev: $("bk-prev"), next: $("bk-next"), pick: $("bk-pick"), form: $("bk-form"), summary: $("bk-summary"),
   back: $("bk-back"), status: $("bk-status"), submit: $("bk-submit"), done: $("bk-done"), doneText: $("bk-done-text"),
   steps: $("bk-steps"), recap: $("bk-recap"), recapService: $("bk-recap-service"), recapMeta: $("bk-recap-meta"), recapWhen: $("bk-recap-when"),
@@ -56,6 +56,13 @@ function serviceIdFor(label) {
   if (hit) return hit.id;
   if (label === "Accompagnement shopping") return "shopping-1h";
   return "";
+}
+
+// Consigne affichée en haut de l'étape (que faire maintenant ?)
+function setGuide(title, text, tone = "") {
+  el.guideTitle.textContent = title;
+  el.guideText.textContent = text;
+  el.guideTitle.closest(".bk-guide").dataset.tone = tone;
 }
 
 const STEP_NUM = { pick: 1, form: 2, done: 3 };
@@ -93,10 +100,12 @@ async function loadMonth() {
   el.slots.innerHTML = "";
   if (!state.serviceId) {
     renderGrid();
-    el.hint.textContent = "Choisissez d'abord une prestation.";
+    el.cal.classList.add("locked");
+    setGuide("Choisissez votre prestation", "Sélectionnez-la dans la liste : le calendrier affichera aussitôt mes disponibilités.");
     return;
   }
-  el.hint.textContent = "Chargement des disponibilités…";
+  el.cal.classList.remove("locked");
+  setGuide("Un instant…", "Je consulte mon agenda pour vous proposer les meilleurs créneaux.");
   el.grid.classList.add("loading");
   try {
     const q = new URLSearchParams({ service: state.serviceId, from: keyOf(y, m, 1), to: keyOf(y, m, last) });
@@ -104,9 +113,10 @@ async function loadMonth() {
     if (!res.ok) throw new Error(res.status);
     state.slots = (await res.json()).slots;
     const n = Object.keys(state.slots).length;
-    el.hint.textContent = n ? "Choisissez un jour." : "Aucune disponibilité ce mois-ci : essayez le mois suivant.";
+    if (n) setGuide("Choisissez un jour", "Les jours en rose sont disponibles. Les autres sont déjà pris ou fermés.");
+    else setGuide("Aucune disponibilité ce mois-ci", "Essayez le mois suivant avec la flèche ›.", "warn");
   } catch {
-    el.hint.textContent = `Agenda momentanément indisponible. Écrivez-moi à ${CONTACT_EMAIL}.`;
+    setGuide("Agenda momentanément indisponible", `Réessayez dans un instant ou écrivez-moi à ${CONTACT_EMAIL}.`, "warn");
   }
   el.grid.classList.remove("loading");
   renderGrid();
@@ -131,7 +141,8 @@ function renderGrid() {
 function renderSlots() {
   const list = state.slots[state.day] || [];
   const label = dayFmt.format(new Date(state.day + "T12:00:00Z"));
-  el.hint.textContent = `Créneaux du ${label}`;
+  const s = serviceById(state.serviceId);
+  setGuide("Choisissez une heure", `Créneaux du ${label} · durée ${durationLabel(s.minutes)}. Un clic suffit pour sélectionner.`);
   el.slots.innerHTML = list.map((iso) => `<button type="button" class="slot" data-start="${iso}">${timeFmt.format(new Date(iso))}</button>`).join("");
 }
 
@@ -221,7 +232,7 @@ el.form.addEventListener("submit", async (e) => {
       // créneau pris entre-temps : retour au calendrier mis à jour
       showStep("pick");
       await loadMonth();
-      el.hint.textContent = data.error || "Ce créneau vient d'être pris. Choisissez-en un autre.";
+      setGuide("Ce créneau vient d'être pris", data.error || "Choisissez-en un autre dans le calendrier.", "warn");
       return;
     }
     if (!res.ok) throw new Error(data.error || res.status);
@@ -231,6 +242,8 @@ el.form.addEventListener("submit", async (e) => {
       ? "Un e-mail de confirmation vient de vous être envoyé, avec l'invitation pour votre agenda."
       : "Votre rendez-vous est bien enregistré. L'e-mail de confirmation n'a pas pu être envoyé : notez les informations ci-dessus ou ajoutez le rendez-vous à votre agenda.";
     el.doneMail.classList.toggle("warn", !data.emailSent);
+    el.doneMail.hidden = data.emailSent;
+    $("bk-next-mail").hidden = !data.emailSent;
     el.cancelLink.href = data.cancelUrl;
     state.ics = data.ics;
     showStep("done");

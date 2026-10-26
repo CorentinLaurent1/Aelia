@@ -298,7 +298,6 @@ dialog input, dialog select, dialog textarea { font: 300 .9rem var(--sans); padd
 .cal-day.ok { color: #a8482c; font-weight: 500; background: #f6dccf; cursor: pointer; transition: transform .15s, background .2s, box-shadow .2s; }
 .cal-day.ok:hover { transform: scale(1.12); background: var(--line); }
 .cal-day.sel { background: var(--accent); color: #fff; box-shadow: 0 6px 14px rgba(196, 105, 74, .4); }
-.bk-hint { font-size: .88rem; color: var(--muted); min-height: 1.3rem; text-transform: none; }
 .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: .55rem; }
 .slot { padding: .6rem 0; border: 1px solid var(--accent); border-radius: 999px; background: #fff8f4; color: var(--accent); font: 500 .88rem var(--sans); cursor: pointer; transition: .2s; animation: fadeUp .35s both; }
 .slot:hover { background: var(--accent); color: #fff; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(196, 105, 74, .3); }
@@ -332,3 +331,36 @@ dialog input, dialog select, dialog textarea { font: 300 .9rem var(--sans); padd
 }
 [hidden] { display: none !important; }
 .bk-done .bk-back { justify-self: center; margin-top: .4rem; }
+
+/* Consignes de la réservation */
+.bk-guide { display: flex; gap: .9rem; align-items: flex-start; background: linear-gradient(135deg, #fbeee6, #f6dccf); border-radius: 16px; padding: 1rem 1.2rem; transition: background .3s; }
+.bk-guide strong { display: block; font: 400 1.35rem/1.2 var(--serif); color: #8f3f25; }
+.bk-guide p { font-size: .85rem; color: #6b4a3d; line-height: 1.5; margin-top: .15rem; }
+.bk-guide__icon { flex: none; width: 2.1rem; height: 2.1rem; border-radius: 50%; background: var(--accent); display: grid; place-items: center; box-shadow: 0 4px 10px rgba(196, 105, 74, .35); }
+.bk-guide__icon::before { content: "✦"; color: #fff; font-size: .95rem; }
+.bk-guide[data-tone="warn"] { background: #f8dcd5; }
+.bk-guide[data-tone="warn"] .bk-guide__icon { background: #b3402a; }
+.bk-guide[data-tone="warn"] .bk-guide__icon::before { content: "!"; font-weight: 600; }
+.bk-guide:has(strong:empty) { display: none; }
+
+.cal { position: relative; }
+.cal__lock { display: none; }
+.cal.locked .cal__grid, .cal.locked .cal__head { opacity: .35; pointer-events: none; filter: grayscale(.6); }
+.cal.locked .cal__lock { display: block; position: absolute; inset: 0; margin: auto; width: fit-content; height: fit-content; background: #fff; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: .6rem 1.2rem; font-size: .88rem; font-weight: 500; box-shadow: 0 8px 24px rgba(196, 105, 74, .25); white-space: nowrap; animation: floaty 3s ease-in-out infinite; }
+.cal-legend { display: flex; gap: 1.1rem; justify-content: center; list-style: none; padding: .8rem 0 0; margin-top: .4rem; border-top: 1px dashed var(--line); font-size: .75rem; color: var(--muted); }
+.cal-legend li { display: flex; align-items: center; gap: .4rem; }
+.cal-legend i { width: .85rem; height: .85rem; border-radius: 50%; display: inline-block; }
+.l-ok { background: #f6dccf; border: 1px solid #e8b9a4; }
+.l-sel { background: var(--accent); }
+.l-off { background: none; border: 1px solid #d6c8c1; }
+
+.bk__reassure { list-style: none; padding: 0; margin-top: auto; display: grid; gap: .65rem; font-size: .8rem; line-height: 1.4; }
+.bk__reassure li { display: flex; gap: .6rem; align-items: flex-start; opacity: .92; }
+.bk__reassure svg { flex: none; width: 1.15rem; height: 1.15rem; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; margin-top: .05rem; }
+
+.bk-next { list-style: none; counter-reset: n; padding: 0; display: grid; gap: .8rem; text-align: left; width: 100%; max-width: 420px; margin: .4rem 0; }
+.bk-next li { counter-increment: n; display: grid; grid-template-columns: 2rem 1fr; column-gap: .8rem; background: #fff8f4; border: 1px solid var(--line); border-radius: 14px; padding: .8rem 1rem; }
+.bk-next li::before { content: counter(n); grid-row: span 2; width: 2rem; height: 2rem; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: .85rem; font-weight: 500; align-self: center; }
+.bk-next b { font-weight: 500; font-size: .92rem; }
+.bk-next span { font-size: .8rem; color: var(--muted); }
+@media (max-width: 760px) { .bk__reassure { display: none; } .bk-guide strong { font-size: 1.2rem; } .cal.locked .cal__lock { font-size: .8rem; } }

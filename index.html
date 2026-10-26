@@ -256,27 +256,40 @@
         <p class="bk__recap-meta" id="bk-recap-meta"></p>
         <p class="bk__recap-when" id="bk-recap-when"></p>
       </div>
-      <p class="bk__side-note">Un e-mail de confirmation vous est envoyé, avec l'invitation pour votre agenda.</p>
+      <ul class="bk__reassure">
+        <li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>Confirmation immédiate par e-mail</li>
+        <li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>Invitation à ajouter à votre agenda</li>
+        <li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>Annulation ou report en ligne jusqu'à 24 h avant</li>
+      </ul>
     </aside>
 
     <div class="bk__main booking__body">
       <div id="bk-pick">
+        <div class="bk-guide" id="bk-guide" role="status" aria-live="polite">
+          <span class="bk-guide__icon" aria-hidden="true"></span>
+          <div><strong id="bk-guide-title">Choisissez votre prestation</strong><p id="bk-guide-text"></p></div>
+        </div>
         <label class="bk-field">Prestation
           <select id="bk-service" autofocus></select>
         </label>
-        <div class="cal">
+        <div class="cal locked" id="bk-cal">
           <div class="cal__head">
             <button type="button" id="bk-prev" aria-label="Mois précédent">‹</button>
             <strong id="bk-month"></strong>
             <button type="button" id="bk-next" aria-label="Mois suivant">›</button>
           </div>
           <div class="cal__grid" id="bk-grid"></div>
+          <ul class="cal-legend"><li><i class="l-ok"></i>Disponible</li><li><i class="l-sel"></i>Sélectionné</li><li><i class="l-off"></i>Indisponible</li></ul>
+          <p class="cal__lock">Choisissez d'abord une prestation</p>
         </div>
-        <p class="bk-hint" id="bk-hint" role="status" aria-live="polite"></p>
         <div class="slots" id="bk-slots"></div>
       </div>
 
       <form id="bk-form" hidden>
+        <div class="bk-guide">
+          <span class="bk-guide__icon" aria-hidden="true"></span>
+          <div><strong>Presque terminé</strong><p>Renseignez vos coordonnées : c'est à cette adresse que je vous envoie la confirmation.</p></div>
+        </div>
         <div class="bk-summary" id="bk-summary"></div>
         <button type="button" class="bk-back" id="bk-back">← Changer de créneau</button>
         <label>Nom <input name="name" required maxlength="100" autocomplete="name" placeholder="Votre nom et prénom"></label>
@@ -294,6 +307,11 @@
         <h4>Rendez-vous confirmé</h4>
         <p class="bk-done__text" id="bk-done-text"></p>
         <p class="bk-done__mail" id="bk-done-mail"></p>
+        <ol class="bk-next">
+          <li id="bk-next-mail"><b>Consultez vos e-mails</b><span>Votre confirmation et l'invitation sont dans votre boîte de réception (pensez aux courriers indésirables).</span></li>
+          <li><b>Ajoutez le rendez-vous à votre agenda</b><span>Un clic sur le bouton ci-dessous.</span></li>
+          <li><b>Je reviens vers vous</b><span>Pour les modalités pratiques et de règlement.</span></li>
+        </ol>
         <div class="bk-done__actions">
           <button type="button" class="btn" id="bk-ics">Ajouter à mon agenda</button>
           <a class="btn btn--outline" id="bk-cancel-link" href="#" target="_blank" rel="noopener">Annuler ou déplacer</a>
