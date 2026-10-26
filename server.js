@@ -18,7 +18,7 @@ const SERVICES = [
 ];
 
 app.disable("x-powered-by");
-app.set("trust proxy", 1); // Render est derrière un proxy : IP réelle et https corrects
+app.set("trust proxy", 1); // Vercel est derrière un proxy : IP réelle et https corrects
 app.use((_req, res, next) => {
   res.set({ "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin", "X-Frame-Options": "SAMEORIGIN" });
   next();
