@@ -30,6 +30,7 @@ const el = {
 
 const state = { services: null, serviceId: "", month: null, slots: {}, day: null, start: null, busy: false };
 
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const pad = (n) => String(n).padStart(2, "0");
 const keyOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const timeFmt = new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
@@ -79,7 +80,7 @@ function updateRecap() {
   if (!s) return;
   el.recapService.textContent = s.name;
   el.recapMeta.textContent = `${durationLabel(s.minutes)} · ${s.price}`;
-  el.recapWhen.textContent = state.start ? longFmt.format(new Date(state.start)) : "Choisissez un créneau";
+  el.recapWhen.textContent = state.start ? cap(longFmt.format(new Date(state.start))) : "Choisissez un créneau";
   el.recapWhen.classList.toggle("set", Boolean(state.start));
 }
 
@@ -186,7 +187,7 @@ el.slots.addEventListener("click", (e) => {
   if (!b) return;
   state.start = b.dataset.start;
   const s = serviceById(state.serviceId);
-  const when = longFmt.format(new Date(state.start));
+  const when = cap(longFmt.format(new Date(state.start)));
   el.summary.innerHTML = `<b>${s.name}</b> · ${durationLabel(s.minutes)} · ${s.price}<br>${when}`;
   updateRecap();
   el.status.hidden = true;
@@ -225,7 +226,7 @@ el.form.addEventListener("submit", async (e) => {
     }
     if (!res.ok) throw new Error(data.error || res.status);
     el.form.reset();
-    el.doneText.innerHTML = `<b>${data.service}</b><br>${data.when} · ${data.duration}`;
+    el.doneText.innerHTML = `<b>${data.service}</b><br>${cap(data.when)} · ${data.duration}`;
     el.doneMail.textContent = data.emailSent
       ? "Un e-mail de confirmation vient de vous être envoyé, avec l'invitation pour votre agenda."
       : "Votre rendez-vous est bien enregistré. L'e-mail de confirmation n'a pas pu être envoyé : notez les informations ci-dessus ou ajoutez le rendez-vous à votre agenda.";

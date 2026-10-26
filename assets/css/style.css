@@ -248,8 +248,9 @@ dialog input, dialog select, dialog textarea { font: 300 .9rem var(--sans); padd
 #booking { width: min(920px, 96vw); max-height: 94vh; padding: 0; overflow: hidden; border: 0; border-radius: 26px; position: relative; box-shadow: 0 30px 80px rgba(60, 30, 20, .35); }
 #booking[open] { animation: popIn .5s cubic-bezier(.2, 1.1, .3, 1) both; }
 #booking[open]::backdrop { animation: fadeIn .4s ease both; backdrop-filter: blur(4px); }
-#booking .dialog__close { position: absolute; z-index: 3; top: .8rem; right: 1rem; width: 2.2rem; height: 2.2rem; line-height: 1; border-radius: 50%; transition: background .2s; }
-#booking .dialog__close:hover { background: rgba(0, 0, 0, .06); }
+#booking .dialog__close { position: absolute; z-index: 3; top: .8rem; right: 1rem; width: 2.2rem; height: 2.2rem; line-height: 1; border-radius: 50%; background: rgba(255, 255, 255, .85); border: 1px solid var(--line); color: var(--muted); font-size: 1.4rem; display: grid; place-items: center; transition: background .2s, color .2s; outline: none; }
+#booking .dialog__close:focus-visible { box-shadow: 0 0 0 3px rgba(196, 105, 74, .35); }
+#booking .dialog__close:hover { background: var(--accent); color: #fff; }
 .bk { display: grid; grid-template-columns: 300px 1fr; max-height: 94vh; }
 .bk__side { position: relative; overflow: hidden; background: linear-gradient(165deg, #d57d5e, var(--accent) 55%, #a9553a); color: #fff; padding: 2.4rem 1.8rem; display: flex; flex-direction: column; gap: 1.1rem; }
 .bk__side::before, .bk__side::after { content: ""; position: absolute; border-radius: 50%; background: rgba(255, 255, 255, .08); animation: drift 9s ease-in-out infinite; }
@@ -260,6 +261,7 @@ dialog input, dialog select, dialog textarea { font: 300 .9rem var(--sans); padd
 .bk__logo { height: 3.4rem; width: auto; filter: brightness(0) invert(1); align-self: flex-start; }
 .bk__kicker { font-size: .72rem; letter-spacing: .3em; text-transform: uppercase; opacity: .8; margin-top: .4rem; }
 .bk__side h3 { font-size: 2.1rem; color: #fff; line-height: 1.1; }
+.nw { white-space: nowrap; }
 .bk__steps { list-style: none; padding: 0; display: grid; gap: .8rem; margin-top: .6rem; }
 .bk__steps li { display: flex; align-items: center; gap: .8rem; font-size: .9rem; opacity: .6; transition: opacity .3s; }
 .bk__steps li span { width: 1.9rem; height: 1.9rem; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .7); display: grid; place-items: center; font-size: .8rem; flex: none; transition: .3s; }
@@ -274,11 +276,11 @@ dialog input, dialog select, dialog textarea { font: 300 .9rem var(--sans); padd
 .bk__recap-label { font-size: .68rem; letter-spacing: .2em; text-transform: uppercase; opacity: .75; }
 .bk__recap-service { font: 400 1.35rem/1.2 var(--serif); margin-top: .2rem; }
 .bk__recap-meta { font-size: .85rem; opacity: .9; }
-.bk__recap-when { margin-top: .6rem; padding-top: .6rem; border-top: 1px solid rgba(255, 255, 255, .25); font-size: .88rem; text-transform: capitalize; opacity: .75; font-style: italic; }
+.bk__recap-when { margin-top: .6rem; padding-top: .6rem; border-top: 1px solid rgba(255, 255, 255, .25); font-size: .88rem; opacity: .75; font-style: italic; }
 .bk__recap-when.set { opacity: 1; font-style: normal; font-weight: 500; }
 .bk__side-note { margin-top: auto; font-size: .78rem; opacity: .8; line-height: 1.5; }
 
-.bk__main { padding: 2.2rem 2.2rem 2rem; overflow-y: auto; max-height: 94vh; background: var(--bg); display: block; }
+.bk__main { padding: 2.4rem 2.2rem 2rem; overflow-y: auto; max-height: 94vh; background: var(--bg); display: block; }
 .bk__main > div, .bk__main > form { display: grid; gap: 1rem; animation: fadeUp .4s both; }
 .bk-field { display: grid; gap: .3rem; font-size: .8rem; color: var(--muted); }
 .bk-field select, #bk-form input, #bk-form textarea { font: 300 .95rem var(--sans); padding: .7rem .9rem; border: 1px solid var(--line); border-radius: 12px; background: #fff8f4; color: var(--text); width: 100%; transition: border-color .2s, box-shadow .2s; }
@@ -289,24 +291,24 @@ dialog input, dialog select, dialog textarea { font: 300 .9rem var(--sans); padd
 .cal__head button { width: 2.2rem; height: 2.2rem; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); color: var(--accent); font-size: 1.2rem; cursor: pointer; transition: .2s; }
 .cal__head button:hover:not(:disabled) { background: var(--accent); color: #fff; }
 .cal__head button:disabled { opacity: .3; cursor: default; }
-.cal__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: .3rem; text-align: center; transition: opacity .2s; }
+.cal__grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 2.7rem; gap: .15rem; text-align: center; transition: opacity .2s; align-items: center; }
 .cal__grid.loading { opacity: .4; }
-.cal-dow { font-size: .7rem; color: var(--muted); padding-bottom: .2rem; }
-.cal-day { aspect-ratio: 1; border: 0; border-radius: 50%; background: none; font: 300 .9rem var(--sans); color: #c9bab3; cursor: default; }
-.cal-day.ok { color: var(--accent); font-weight: 500; background: var(--bg-alt); cursor: pointer; transition: transform .15s, background .2s, box-shadow .2s; }
+.cal-dow { font-size: .72rem; letter-spacing: .1em; color: var(--muted); }
+.cal-day { width: 2.5rem; height: 2.5rem; justify-self: center; border: 0; border-radius: 50%; background: none; font: 300 .9rem var(--sans); color: #d6c8c1; cursor: default; }
+.cal-day.ok { color: #a8482c; font-weight: 500; background: #f6dccf; cursor: pointer; transition: transform .15s, background .2s, box-shadow .2s; }
 .cal-day.ok:hover { transform: scale(1.12); background: var(--line); }
 .cal-day.sel { background: var(--accent); color: #fff; box-shadow: 0 6px 14px rgba(196, 105, 74, .4); }
 .bk-hint { font-size: .88rem; color: var(--muted); min-height: 1.3rem; text-transform: none; }
 .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: .55rem; }
 .slot { padding: .6rem 0; border: 1px solid var(--accent); border-radius: 999px; background: #fff8f4; color: var(--accent); font: 500 .88rem var(--sans); cursor: pointer; transition: .2s; animation: fadeUp .35s both; }
 .slot:hover { background: var(--accent); color: #fff; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(196, 105, 74, .3); }
-.bk-summary { background: #fff8f4; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 12px; padding: .9rem 1.1rem; font-size: .92rem; text-transform: capitalize; }
-.bk-summary b { text-transform: none; font: 400 1.3rem var(--serif); color: var(--accent); }
+.bk-summary { background: #fff8f4; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 12px; padding: .9rem 1.1rem; font-size: .92rem; }
+.bk-summary b { font: 400 1.3rem var(--serif); color: var(--accent); }
 .bk-back { justify-self: start; background: none; border: 0; color: var(--accent); font: 400 .8rem var(--sans); cursor: pointer; text-decoration: underline; padding: 0; }
 .bk-done { justify-items: center; text-align: center; padding: 1rem 0; }
 .bk-done h4 { font: 400 2rem var(--serif); color: var(--accent); }
-.bk-done__text { text-transform: capitalize; font-size: 1.05rem; }
-.bk-done__text b { text-transform: none; font: 400 1.4rem var(--serif); }
+.bk-done__text { font-size: 1.05rem; }
+.bk-done__text b { font: 400 1.4rem var(--serif); color: var(--text); }
 .bk-done__mail { font-size: .88rem; color: var(--muted); max-width: 380px; }
 .bk-done__mail.warn { color: #8a2f1c; background: #f8dcd5; border-radius: 10px; padding: .7rem 1rem; }
 .bk-done__actions { display: flex; flex-wrap: wrap; gap: .7rem; justify-content: center; margin-top: .4rem; }
@@ -315,7 +317,7 @@ dialog input, dialog select, dialog textarea { font: 300 .9rem var(--sans); padd
 .bk-check path { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw .5s .7s ease forwards; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
 @media (max-width: 760px) {
-  #booking { width: 100vw; max-height: 100vh; height: 100vh; border-radius: 0; }
+  #booking { width: 100vw; max-width: 100vw; max-height: 100dvh; height: 100dvh; margin: 0; border-radius: 0; }
   .bk { grid-template-columns: 1fr; grid-template-rows: auto 1fr; max-height: 100vh; }
   .bk__side { padding: 1.4rem 1.3rem; gap: .6rem; }
   .bk__side h3 { font-size: 1.6rem; }
@@ -329,3 +331,4 @@ dialog input, dialog select, dialog textarea { font: 300 .9rem var(--sans); padd
   .bk__main { padding: 1.3rem 1.2rem 2rem; max-height: none; }
 }
 [hidden] { display: none !important; }
+.bk-done .bk-back { justify-self: center; margin-top: .4rem; }
