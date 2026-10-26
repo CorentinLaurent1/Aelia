@@ -35,6 +35,8 @@ app.get("/", (req, res) => {
   indexHtml = indexHtml || fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
   res.type("html").send(indexHtml.replace(/__SITE_URL__/g, siteUrl(req)));
 });
+// Anciens liens vers index.html : retour à l'accueil
+app.get(["/index.html", "/pages/index.html"], (_req, res) => res.redirect(301, "/"));
 app.get("/robots.txt", (req, res) => {
   res.type("text/plain").send(`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /rendez-vous/\n\nSitemap: ${siteUrl(req)}/sitemap.xml\n`);
 });
