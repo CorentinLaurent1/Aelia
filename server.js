@@ -38,6 +38,8 @@ app.get("/", (req, res) => {
 });
 // Anciens liens vers index.html : retour à l'accueil
 app.get(["/index.html", "/pages/index.html"], (_req, res) => res.redirect(301, "/"));
+// Validation de la propriété du site dans Google Search Console (à conserver)
+app.get("/googlebeec1be7b3d4485b.html", (_req, res) => res.type("html").send("google-site-verification: googlebeec1be7b3d4485b.html"));
 app.get("/robots.txt", (req, res) => {
   res.type("text/plain").send(`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /rendez-vous/\n\nSitemap: ${siteUrl(req)}/sitemap.xml\n`);
 });
