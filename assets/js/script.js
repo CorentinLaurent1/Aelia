@@ -24,6 +24,8 @@ const el = {
   service: $("bk-service"), month: $("bk-month"), grid: $("bk-grid"), hint: $("bk-hint"), slots: $("bk-slots"),
   prev: $("bk-prev"), next: $("bk-next"), pick: $("bk-pick"), form: $("bk-form"), summary: $("bk-summary"),
   back: $("bk-back"), status: $("bk-status"), submit: $("bk-submit"), done: $("bk-done"), doneText: $("bk-done-text"),
+  steps: $("bk-steps"), recap: $("bk-recap"), recapService: $("bk-recap-service"), recapMeta: $("bk-recap-meta"), recapWhen: $("bk-recap-when"),
+  doneMail: $("bk-done-mail"), ics: $("bk-ics"), cancelLink: $("bk-cancel-link"),
 };
 
 const state = { services: null, serviceId: "", month: null, slots: {}, day: null, start: null, busy: false };
@@ -55,11 +57,30 @@ function serviceIdFor(label) {
   return "";
 }
 
+const STEP_NUM = { pick: 1, form: 2, done: 3 };
 function showStep(step) {
   el.pick.hidden = step !== "pick";
   el.form.hidden = step !== "form";
   el.done.hidden = step !== "done";
+  const n = STEP_NUM[step];
+  el.steps.querySelectorAll("li").forEach((li) => {
+    const i = Number(li.dataset.step);
+    li.classList.toggle("on", i === n);
+    li.classList.toggle("done", i < n || step === "done");
+  });
   dlg.querySelector(".booking__body").scrollTop = 0;
+}
+
+const durationLabel = (m) => `${Math.floor(m / 60)}h${m % 60 ? String(m % 60).padStart(2, "0") : ""}`;
+
+function updateRecap() {
+  const s = state.serviceId && serviceById(state.serviceId);
+  el.recap.hidden = !s;
+  if (!s) return;
+  el.recapService.textContent = s.name;
+  el.recapMeta.textContent = `${durationLabel(s.minutes)} · ${s.price}`;
+  el.recapWhen.textContent = state.start ? longFmt.format(new Date(state.start)) : "Choisissez un créneau";
+  el.recapWhen.classList.toggle("set", Boolean(state.start));
 }
 
 async function loadMonth() {
@@ -124,7 +145,9 @@ async function openBooking(label) {
     return;
   }
   state.serviceId = serviceIdFor(label);
+  state.start = null;
   el.service.value = state.serviceId;
+  updateRecap();
   const now = new Date();
   state.month = { y: now.getFullYear(), m: now.getMonth() };
   el.status.hidden = true;
@@ -142,7 +165,7 @@ document.querySelectorAll("[data-book]").forEach((a) =>
 dlg.querySelector(".dialog__close").addEventListener("click", () => dlg.close());
 dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
 
-el.service.addEventListener("change", () => { state.serviceId = el.service.value; loadMonth(); });
+el.service.addEventListener("change", () => { state.serviceId = el.service.value; state.start = null; updateRecap(); loadMonth(); });
 el.prev.addEventListener("click", () => { state.month = shiftMonth(-1); loadMonth(); });
 el.next.addEventListener("click", () => { state.month = shiftMonth(1); loadMonth(); });
 function shiftMonth(delta) {
@@ -164,12 +187,13 @@ el.slots.addEventListener("click", (e) => {
   state.start = b.dataset.start;
   const s = serviceById(state.serviceId);
   const when = longFmt.format(new Date(state.start));
-  el.summary.innerHTML = `<b>${s.name}</b> · ${s.price}<br>${when}`;
+  el.summary.innerHTML = `<b>${s.name}</b> · ${durationLabel(s.minutes)} · ${s.price}<br>${when}`;
+  updateRecap();
   el.status.hidden = true;
   showStep("form");
 });
 
-el.back.addEventListener("click", () => showStep("pick"));
+el.back.addEventListener("click", () => { state.start = null; updateRecap(); showStep("pick"); });
 
 function showStatus(msg, ok) {
   el.status.textContent = msg;
@@ -201,7 +225,13 @@ el.form.addEventListener("submit", async (e) => {
     }
     if (!res.ok) throw new Error(data.error || res.status);
     el.form.reset();
-    el.doneText.innerHTML = `<b>${state.services && serviceById(state.serviceId).name}</b><br>${data.when || longFmt.format(new Date(state.start))}`;
+    el.doneText.innerHTML = `<b>${data.service}</b><br>${data.when} · ${data.duration}`;
+    el.doneMail.textContent = data.emailSent
+      ? "Un e-mail de confirmation vient de vous être envoyé, avec l'invitation pour votre agenda."
+      : "Votre rendez-vous est bien enregistré. L'e-mail de confirmation n'a pas pu être envoyé : notez les informations ci-dessus ou ajoutez le rendez-vous à votre agenda.";
+    el.doneMail.classList.toggle("warn", !data.emailSent);
+    el.cancelLink.href = data.cancelUrl;
+    state.ics = data.ics;
     showStep("done");
   } catch (err) {
     showStatus(`La réservation a échoué. Réessayez ou écrivez-moi à ${CONTACT_EMAIL}.`, false);
@@ -212,6 +242,15 @@ el.form.addEventListener("submit", async (e) => {
   }
 });
 $("bk-close-done").addEventListener("click", () => dlg.close());
+el.ics.addEventListener("click", () => {
+  if (!state.ics) return;
+  const url = URL.createObjectURL(new Blob([state.ics], { type: "text/calendar;charset=utf-8" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: "rendez-vous-aelia.ics" });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
 
 // Bandeau cookies
 const banner = document.getElementById("cookies");
