@@ -28,7 +28,21 @@ app.use(express.json({ limit: "20kb" }));
 // Seuls les dossiers publics sont servis (jamais server.js, package.json, .env…)
 app.use("/assets", express.static(path.join(__dirname, "assets"), { maxAge: "7d" }));
 app.use("/pages", express.static(path.join(__dirname, "pages")));
-app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "index.html")));
+const siteUrl = (req) => (process.env.SITE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+const fs = require("fs");
+let indexHtml;
+app.get("/", (req, res) => {
+  indexHtml = indexHtml || fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
+  res.type("html").send(indexHtml.replace(/__SITE_URL__/g, siteUrl(req)));
+});
+app.get("/robots.txt", (req, res) => {
+  res.type("text/plain").send(`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /rendez-vous/\n\nSitemap: ${siteUrl(req)}/sitemap.xml\n`);
+});
+app.get("/sitemap.xml", (req, res) => {
+  const u = siteUrl(req);
+  const urls = ["/", "/pages/mentions-legales.html", "/pages/confidentialite.html", "/pages/cgv.html"];
+  res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((p) => `  <url><loc>${u}${p}</loc></url>`).join("\n")}\n</urlset>\n`);
+});
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -42,6 +56,11 @@ function tooMany(ip) {
   return recent.length > 5;
 }
 
+// Sur un hébergement « serverless », la fonction est gelée dès la réponse envoyée :
+// on attend donc la fin des envois d'e-mails avant de répondre.
+const pendingMail = [];
+const flushMail = () => Promise.allSettled(pendingMail.splice(0));
+
 let transporter;
 function getTransporter() {
   if (!transporter) {
@@ -51,6 +70,12 @@ function getTransporter() {
       secure: (Number(SMTP_PORT) || 465) === 465,
       auth: { user: SMTP_USER, pass: SMTP_PASS },
     });
+    const send = transporter.sendMail.bind(transporter);
+    transporter.sendMail = (opts) => {
+      const p = send(opts);
+      pendingMail.push(p.catch(() => {}));
+      return p;
+    };
   }
   return transporter;
 }
@@ -92,6 +117,7 @@ app.post("/api/contact", async (req, res) => {
       html: `<p>Bonjour ${esc(data.name)},</p><p>J'ai bien reçu votre demande pour : <b>${esc(data.service)}</b>.<br>Je reviens vers vous très vite pour convenir d'un créneau.</p><p>À bientôt,<br>Laësia · <i>Aélia, conseil en style et image</i></p>`,
     }).catch((e) => console.error("Accusé de réception non envoyé :", e.message));
 
+    await flushMail();
     res.json({ ok: true });
   } catch (e) {
     console.error("Échec d'envoi :", e.message);
@@ -184,6 +210,22 @@ async function handleBooking(req, res) {
     return res.status(502).json({ error: "La réservation n'a pas pu être enregistrée." });
   }
 
+  // Contrôle après écriture : sur un hébergement sans mémoire partagée, deux réservations simultanées
+  // peuvent se croiser. En cas de chevauchement, la plus petite référence est conservée, l'autre se retire.
+  try {
+    const after = await busyFromAgenda({ fresh: true });
+    const a = startJs.getTime(), b = endJs.getTime();
+    const clash = after.some((o) => o.uid !== event.uid && o.start.getTime() < b && o.end.getTime() > a
+      && !(String(o.uid || "").endsWith("@aelia") && o.uid > event.uid));
+    if (clash) {
+      await calendar.deleteEvent(event.uid);
+      busyCache.at = 0;
+      return res.status(409).json({ error: "Ce créneau vient d'être pris. Choisissez-en un autre." });
+    }
+  } catch (e) {
+    console.error("Contrôle après écriture :", e.message);
+  }
+
   // E-mails de confirmation (leur échec ne remet pas en cause la réservation)
   const when = fmtDay(startUtc);
   const base = process.env.SITE_URL || `${req.protocol}://${req.get("host")}`;
@@ -208,6 +250,7 @@ async function handleBooking(req, res) {
       attachments,
     }).catch((e) => console.error("Confirmation non envoyée :", e.message));
   }
+  await flushMail();
   res.json({ ok: true, service: svc.name, when });
 }
 
@@ -226,18 +269,20 @@ function appointmentFromToken(t) {
   };
 }
 
-app.get("/api/appointment", (req, res) => {
+app.get("/api/appointment", async (req, res) => {
   let ap;
   try { ap = appointmentFromToken(req.query.t); } catch { ap = null; }
   if (!ap) return res.status(400).json({ error: "Lien invalide." });
+  let state = "active";
+  if (calendar.configured() && ap.hoursLeft > 0) {
+    try { if (!(await calendar.eventExists(ap.a.u))) state = "cancelled"; } catch { /* on laisse "active" */ }
+  }
   res.json({
     service: ap.service, when: ap.when, hours: cfg.cancelBeforeHours,
     past: ap.hoursLeft <= 0, canCancel: ap.hoursLeft >= cfg.cancelBeforeHours,
-    state: cancelled.has(ap.a.u) ? "cancelled" : "active",
+    state,
   });
 });
-
-const cancelled = new Set(); // évite les e-mails en double si le lien est cliqué plusieurs fois
 
 app.post("/api/cancel", (req, res) => {
   const run = bookingLock.then(() => handleCancel(req, res)).catch((e) => {
@@ -264,7 +309,8 @@ async function handleCancel(req, res) {
     console.error("Suppression de l'événement :", e.message);
     return res.status(502).json({ error: "L'annulation n'a pas pu être enregistrée." });
   }
-  if (removed && !cancelled.has(ap.a.u) && SMTP_HOST && SMTP_USER && SMTP_PASS) {
+  // e-mails seulement si l'événement existait encore (évite les doublons si le lien est recliqué)
+  if (removed && SMTP_HOST && SMTP_USER && SMTP_PASS) {
     const from = MAIL_FROM || SMTP_USER;
     const t = getTransporter();
     const subject = `Rendez-vous annulé · ${ap.when}`;
@@ -279,11 +325,14 @@ async function handleCancel(req, res) {
       html: `<p>Bonjour ${esc(ap.a.n)},</p><p>Votre rendez-vous (<b>${esc(ap.service)}</b>, ${esc(ap.when)}) est bien annulé. Pensez à le supprimer de votre agenda.</p><p>Vous pouvez reprendre rendez-vous quand vous le souhaitez sur le site.</p><p>À bientôt,<br>Laësia · <i>Aélia</i></p>`,
     }).catch((e) => console.error("Confirmation d'annulation non envoyée :", e.message));
   }
-  cancelled.add(ap.a.u);
+  await flushMail();
   res.json({ ok: true });
 }
 
 // Page 404 aux couleurs du site
 app.use((_req, res) => res.status(404).sendFile(path.join(__dirname, "pages", "404.html")));
 
-app.listen(PORT, () => console.log(`Aélia sur http://localhost:${PORT}`));
+// Vercel importe l'application ; un hébergeur classique (ou `npm start`) lance le serveur.
+if (require.main === module) app.listen(PORT, () => console.log(`Aélia sur http://localhost:${PORT}`));
+
+module.exports = app;
