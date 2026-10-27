@@ -172,7 +172,8 @@ dialog input, dialog select, dialog textarea { font: 300 .9rem var(--sans); padd
 /* Animations */
 @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 @keyframes floaty { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(6deg); } }
-.hero > * { animation: fadeUp .9s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes riseIn { from { transform: translateY(18px); } to { transform: none; } }
+.hero > * { animation: riseIn .8s cubic-bezier(.2, .7, .2, 1) both; }
 .hero > :nth-child(2) { animation-delay: .12s; }
 .hero > :nth-child(3) { animation-delay: .24s; }
 .hero > :nth-child(4) { animation-delay: .36s; }

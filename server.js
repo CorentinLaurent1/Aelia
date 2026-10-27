@@ -56,11 +56,17 @@ app.get("/pages/:name", (req, res, next) => {
   res.type("html").send(pageHtml(name));
 });
 const siteUrl = (req) => (process.env.SITE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+// La feuille de style de la page d'accueil est intégrée au HTML : le navigateur peut afficher la page sans attendre un second téléchargement.
+let cssText;
+function inlineCss(html) {
+  cssText = cssText || fs.readFileSync(path.join(__dirname, "public", "assets", "css", "style.css"), "utf8");
+  return html.replace(/<link rel="stylesheet" href="assets\/css\/style\.css[^"]*">/, () => `<style>${cssText}</style>`);
+}
 let indexHtml;
 app.get("/", (req, res) => {
   indexHtml = indexHtml || fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
   res.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=86400");
-  res.type("html").send(versioned(indexHtml.replace(/__SITE_URL__/g, siteUrl(req))));
+  res.type("html").send(inlineCss(versioned(indexHtml.replace(/__SITE_URL__/g, siteUrl(req)))));
 });
 // Anciens liens vers index.html : retour à l'accueil
 app.get(["/index.html", "/pages/index.html"], (_req, res) => res.redirect(301, "/"));
