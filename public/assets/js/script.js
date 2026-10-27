@@ -317,7 +317,7 @@ function qtUpdateTotal() {
 async function openQuote(preselect) {
   let data;
   try { data = await fetchServices(); } catch { soon.showModal(); return; }
-  const row = (s) => `<label class="qt-item"><input type="checkbox" name="item" value="${s.id}" data-amount="${s.amount}"><span class="qt-item__name">${s.name}<small>${s.minutes ? durationLabel(s.minutes) : "par pièce"}</small></span>${s.category === "retouche" ? '<input class="qt-qty" type="number" min="1" max="20" value="1" aria-label="Quantité">' : ""}<span class="qt-item__price">${s.price}</span></label>`;
+  const row = (s) => `<label class="qt-item"><input type="checkbox" name="item" value="${s.id}" data-amount="${s.amount}"><span class="qt-item__name">${s.name}<small>${s.minutes ? durationLabel(s.minutes) : "par pièce · délai " + (s.delay || "à convenir")}</small></span>${s.category === "retouche" ? '<input class="qt-qty" type="number" min="1" max="20" value="1" aria-label="Quantité">' : ""}<span class="qt-item__price">${s.price}</span></label>`;
   const main = data.services.filter((s) => s.category !== "retouche");
   const fix = data.services.filter((s) => s.category === "retouche");
   qt.list.innerHTML = main.map(row).join("") + (fix.length ? `<p class="qt-sep">Retouches de vêtements</p>${fix.map(row).join("")}` : "");
@@ -363,6 +363,7 @@ qt.form.addEventListener("submit", async (e) => {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || res.status);
     qt.pdf = data.pdf;
+    $("qt-book").hidden = data.onlyRetouche;
     qt.ref = data.ref;
     $("qt-done-text").innerHTML = `<b>${data.ref}</b><br>${euro(data.total)}`;
     const mail = $("qt-done-mail");

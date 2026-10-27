@@ -417,3 +417,6 @@ button.linklike:hover { color: #fff; }
 .cal-day.ok:focus-visible, .slot:focus-visible { outline-offset: 2px; }
 .nav__toggle { color: var(--text); }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .skip-link { transition: none; } }
+
+.delay { display: inline-flex; flex-direction: column; gap: .1rem; align-self: flex-start; padding: .6rem 1rem; border: 1px dashed var(--accent-ink); border-radius: 12px; font: 400 1.05rem var(--serif); color: var(--text); }
+.delay strong { font: 500 .7rem var(--sans); letter-spacing: .15em; text-transform: uppercase; color: var(--accent-ink); }

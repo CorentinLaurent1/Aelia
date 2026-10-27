@@ -311,19 +311,21 @@ app.post("/api/quote", async (req, res) => {
   try {
     pdf = await buildQuotePdf({
       ref, date: now, validUntil, validityDays: cfg.quoteValidityDays, client: c, siteUrl: base.replace(/^https?:\/\//, ""),
-      items: lines.map((s) => ({ name: s.name, minutes: s.minutes, unit: s.amount, qty: s.qty, amount: s.amount * s.qty })),
+      items: lines.map((s) => ({ name: s.name, minutes: s.minutes, delay: s.delay, unit: s.amount, qty: s.qty, amount: s.amount * s.qty })),
     });
   } catch (e) {
     console.error("Génération du devis :", e.message);
     return res.status(500).json({ error: "Le devis n'a pas pu être généré." });
   }
   const total = lines.reduce((s, l) => s + l.amount * l.qty, 0);
+  const hasService = lines.some((l) => l.minutes > 0);
+  const hasRetouche = lines.some((l) => !l.minutes);
   const attachments = [{ filename: `${ref}.pdf`, content: pdf, contentType: "application/pdf" }];
   let emailSent = false;
   if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
     const from = MAIL_FROM || SMTP_USER;
     const t = getTransporter();
-    const rows = [["Devis", escMail(ref)], ["Prestations", lines.map((l) => escMail(l.name) + (l.qty > 1 ? ` × ${l.qty}` : "")).join("<br>")], ["Total", `<b>${escMail(eur(total))}</b> · TVA non applicable`], ["Valable jusqu'au", escMail(dateFr(validUntil))]];
+    const rows = [["Devis", escMail(ref)], ["Prestations", lines.map((l) => escMail(l.name) + (l.qty > 1 ? ` × ${l.qty}` : "")).join("<br>")], ["Total", `<b>${escMail(eur(total))}</b> · TVA non applicable`], ["Valable jusqu'au", escMail(dateFr(validUntil))], ...(hasRetouche ? [["Délai de réalisation des retouches", "environ 1 semaine"]] : [])];
     if (MAIL_TO) t.sendMail({
       from, to: MAIL_TO, replyTo: `"${c.name.replace(/"/g, "")}" <${c.email}>`,
       subject: `Demande de devis ${ref} · ${c.name}`,
@@ -338,19 +340,21 @@ app.post("/api/quote", async (req, res) => {
     await t.sendMail({
       from, to: c.email, replyTo: MAIL_TO || from,
       subject: `Votre devis Aélia · ${ref}`,
-      text: `Bonjour ${c.name},\n\nVous trouverez votre devis (${eur(total)}) en pièce jointe, valable jusqu'au ${dateFr(validUntil)}.\n\nPour le valider, réservez votre créneau sur ${base} ou répondez simplement à cet e-mail.\n\nÀ bientôt,\nLaësia · Aélia`,
+      text: `Bonjour ${c.name},\n\nVous trouverez votre devis (${eur(total)}) en pièce jointe, valable jusqu'au ${dateFr(validUntil)}.\n\n${hasService ? `Pour le valider, réservez votre créneau sur ${base} ou répondez simplement à cet e-mail.` : "Pour le valider, répondez simplement à cet e-mail : je vous indique comment me remettre vos vêtements (délai de réalisation : environ 1 semaine)."}\n\nÀ bientôt,\nLaësia · Aélia`,
       html: layout({
         base, preheader: `Votre devis ${ref} : ${eur(total)}`, title: "Votre devis est prêt",
         intro: `<p style="margin:0">Bonjour ${escMail(c.name)},<br>merci de l'intérêt que vous portez à Aélia. Vous trouverez votre devis en pièce jointe (PDF).</p>`,
         rows,
-        outro: `<p style="margin:0">Pour le valider, il vous suffit de réserver votre créneau en ligne, ou de répondre à cet e-mail pour toute question.</p>`,
-        button: { url: base + "/#prestations", label: "Réserver mon rendez-vous" },
+        outro: hasService
+          ? `<p style="margin:0">Pour le valider, il vous suffit de réserver votre créneau en ligne, ou de répondre à cet e-mail pour toute question.</p>`
+          : `<p style="margin:0">Pour le valider, répondez simplement à cet e-mail : je vous indique alors comment me remettre vos vêtements. Comptez environ une semaine pour la réalisation des retouches.</p>`,
+        button: hasService ? { url: base + "/#prestations", label: "Réserver mon rendez-vous" } : undefined,
       }),
       attachments,
     }).then(() => { emailSent = true; }).catch((e) => console.error("Devis non envoyé :", e.message));
   }
   await flushMail();
-  res.json({ ok: true, ref, total, emailSent, pdf: pdf.toString("base64") });
+  res.json({ ok: true, ref, total, emailSent, onlyRetouche: !hasService, pdf: pdf.toString("base64") });
 });
 
 // ---------- Gestion d'un rendez-vous par la cliente (lien signé reçu par e-mail) ----------

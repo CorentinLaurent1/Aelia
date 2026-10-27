@@ -76,6 +76,7 @@
     "price": "12 €",
     "amount": 12,
     "category": "retouche",
-    "quoteOnly": true
+    "quoteOnly": true,
+    "delay": "1 semaine"
   }
 ]
