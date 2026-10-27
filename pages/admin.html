@@ -30,75 +30,137 @@
 </main>
 
 <!-- Application -->
-<div id="app" hidden>
-  <header class="adm-top">
-    <a href="/" class="logo" aria-label="Aélia, voir le site"><img class="logo__img" src="/assets/images/monogramme.png" alt="" width="36" height="42"><span>AÉLIA</span></a>
-    <nav aria-label="Sections de l'espace responsable" class="adm-tabs" id="tabs">
-      <button type="button" data-view="dashboard" aria-current="page">Tableau de bord</button>
-      <button type="button" data-view="quotes">Devis <span class="adm-badge" id="badge-quotes" hidden></span></button>
-      <button type="button" data-view="rdv">Rendez-vous</button>
+<div id="app" class="adm-shell" hidden>
+  <aside class="adm-side">
+    <a href="/" class="adm-side__logo" aria-label="Aélia, voir le site"><img src="/assets/images/monogramme.png" alt="" width="40" height="46"><span>AÉLIA</span></a>
+    <p class="adm-side__kicker">Espace responsable</p>
+    <nav aria-label="Sections de l'espace responsable" class="adm-nav" id="tabs">
+      <button type="button" data-view="dashboard" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10"/></svg>Tableau de bord</button>
+      <button type="button" data-view="quotes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h8l4 4v14H7zM14 3v5h5M10 13h6M10 17h6"/></svg>Devis <span class="adm-badge" id="badge-quotes" hidden></span></button>
+      <button type="button" data-view="rdv"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v15H5zM5 10h14M9 3v4M15 3v4"/></svg>Rendez-vous</button>
     </nav>
-    <div class="adm-top__actions">
-      <a class="adm-link" href="/" target="_blank" rel="noopener">Voir le site<span class="sr-only"> (nouvel onglet)</span></a>
-      <button type="button" class="btn btn--small btn--outline" id="logout">Déconnexion</button>
+    <div class="adm-side__foot">
+      <a class="adm-side__link" href="/" target="_blank" rel="noopener">Voir le site<span class="sr-only"> (nouvel onglet)</span></a>
+      <button type="button" class="adm-side__btn" id="logout">Déconnexion</button>
     </div>
-  </header>
+  </aside>
 
   <main id="contenu" tabindex="-1" class="adm-main">
     <p class="adm-notice" id="notice" role="status" hidden></p>
 
     <section id="view-dashboard" aria-labelledby="h-dashboard">
-      <h1 id="h-dashboard">Tableau de bord</h1>
+      <header class="adm-head">
+        <div><p class="adm-date" id="today"></p><h1 id="h-dashboard">Bonjour Laësia</h1></div>
+        <button type="button" class="btn btn--small btn--outline" id="refresh">Actualiser</button>
+      </header>
       <div class="adm-stats" id="stats"></div>
-      <div class="adm-cols">
-        <section class="adm-panel" aria-labelledby="h-new"><h2 id="h-new">Nouvelles demandes de devis</h2><ul class="adm-list" id="list-new"></ul></section>
-        <section class="adm-panel" aria-labelledby="h-return"><h2 id="h-return">Retouches à rendre</h2><ul class="adm-list" id="list-return"></ul></section>
-        <section class="adm-panel" aria-labelledby="h-next"><h2 id="h-next">Prochains rendez-vous</h2><ul class="adm-list" id="list-next"></ul></section>
+      <section class="adm-card adm-pipeline" aria-labelledby="h-pipe">
+        <h2 id="h-pipe">Suivi des devis</h2>
+        <div class="adm-bar" id="pipe-bar" role="img" aria-label="Répartition des demandes par statut"></div>
+        <ul class="adm-legend" id="pipe-legend"></ul>
+        <p class="adm-muted" id="pipe-foot"></p>
+      </section>
+      <div class="adm-grid2">
+        <div class="adm-stack">
+          <section class="adm-card" aria-labelledby="h-new"><h2 id="h-new">À traiter en priorité</h2><ul class="adm-list" id="list-new"></ul></section>
+          <section class="adm-card" aria-labelledby="h-return"><h2 id="h-return">Retouches à rendre</h2><ul class="adm-list" id="list-return"></ul></section>
+        </div>
+        <section class="adm-card" aria-labelledby="h-next"><h2 id="h-next">Prochains rendez-vous</h2><ul class="adm-timeline" id="list-next"></ul></section>
       </div>
     </section>
 
     <section id="view-quotes" aria-labelledby="h-quotes" hidden>
-      <h1 id="h-quotes">Demandes de devis</h1>
-      <div class="adm-filters" id="filters" role="group" aria-label="Filtrer par statut"></div>
-      <ul class="adm-cards" id="quote-list"></ul>
+      <header class="adm-head"><h1 id="h-quotes">Demandes de devis</h1></header>
+      <div class="adm-toolbar">
+        <label class="adm-search"><span class="sr-only">Rechercher une demande</span><input type="search" id="q-search" placeholder="Rechercher un nom, un e-mail, un mot du message…"></label>
+        <label class="adm-select"><span class="sr-only">Type de demande</span>
+          <select id="q-type"><option value="">Tous les types</option><option value="retouche">Retouches</option><option value="style">Conseil en style</option><option value="autre">Autre demande</option></select>
+        </label>
+        <label class="adm-check"><input type="checkbox" id="q-refused"> Afficher les refusées</label>
+      </div>
+      <div class="adm-board" id="board"></div>
     </section>
 
     <section id="view-rdv" aria-labelledby="h-rdv" hidden>
-      <h1 id="h-rdv">Rendez-vous à venir</h1>
+      <header class="adm-head"><h1 id="h-rdv">Rendez-vous à venir</h1></header>
       <p class="adm-muted">Les réservations faites depuis le site, lues dans votre agenda iCloud (90 prochains jours).</p>
-      <ul class="adm-cards" id="rdv-list"></ul>
+      <ul class="adm-rdv" id="rdv-list"></ul>
     </section>
   </main>
 </div>
 
-<!-- Détail d'une demande -->
+<!-- Fiche d'une demande -->
 <dialog id="detail" aria-labelledby="d-title" class="adm-detail">
   <button type="button" class="dialog__close" id="d-close"><span aria-hidden="true">×</span><span class="sr-only">Fermer</span></button>
   <div class="adm-detail__body">
-    <p class="eyebrow" id="d-ref"></p>
-    <h2 id="d-title"></h2>
-    <p class="adm-meta" id="d-meta"></p>
-    <div class="adm-msg" id="d-message"></div>
-    <ul class="adm-photos" id="d-photos" aria-label="Photos jointes"></ul>
-    <form id="d-form" class="adm-form">
-      <label>Statut
-        <select id="d-status" name="status"></select>
-      </label>
-      <label>Montant du devis (€)
-        <input type="number" id="d-amount" name="amount" min="0" max="100000" step="0.01" inputmode="decimal">
-      </label>
-      <label class="adm-form__wide">Note privée
-        <textarea id="d-note" name="note" rows="3" maxlength="4000" placeholder="Mesures, accord oral, remarques… (invisible pour la cliente)"></textarea>
-      </label>
-      <p class="adm-muted" id="d-due"></p>
-      <p class="form-status" id="d-status-msg" role="status" aria-live="polite" hidden></p>
-      <div class="adm-actions">
-        <button type="submit" class="btn">Enregistrer</button>
-        <button type="button" class="btn btn--outline" id="d-done">Marquer comme rendu</button>
-        <a class="btn btn--outline" id="d-mail" href="#">Répondre par e-mail</a>
-        <button type="button" class="adm-danger" id="d-delete">Supprimer</button>
+    <header class="adm-detail__head">
+      <p class="eyebrow" id="d-ref"></p>
+      <h2 id="d-title"></h2>
+      <p class="adm-meta" id="d-meta"></p>
+    </header>
+    <div class="adm-tabs" role="tablist" aria-label="Sections de la demande" id="d-tabs">
+      <button type="button" role="tab" id="tab-request" aria-controls="panel-request" aria-selected="true">Demande</button>
+      <button type="button" role="tab" id="tab-reply" aria-controls="panel-reply" aria-selected="false" tabindex="-1">Répondre par un devis</button>
+      <button type="button" role="tab" id="tab-follow" aria-controls="panel-follow" aria-selected="false" tabindex="-1">Suivi</button>
+    </div>
+
+    <section role="tabpanel" id="panel-request" aria-labelledby="tab-request" class="adm-panel">
+      <div class="adm-msg" id="d-message"></div>
+      <ul class="adm-photos" id="d-photos" aria-label="Photos jointes"></ul>
+    </section>
+
+    <section role="tabpanel" id="panel-reply" aria-labelledby="tab-reply" class="adm-panel" hidden>
+      <div class="adm-reply">
+        <div>
+          <p class="adm-hint" id="r-hint"></p>
+          <div class="adm-addrow">
+            <label class="adm-grow">Ajouter depuis le catalogue
+              <select id="r-catalogue"></select>
+            </label>
+            <button type="button" class="btn btn--small btn--outline" id="r-add">Ajouter</button>
+            <button type="button" class="btn btn--small btn--outline" id="r-add-free">+ Ligne libre</button>
+          </div>
+          <div class="adm-lines" id="r-lines" role="group" aria-label="Lignes du devis"></div>
+          <div class="adm-totalbar"><span>Total <small>(TVA non applicable)</small></span><strong id="r-total">0 €</strong></div>
+          <label class="adm-wide">Message envoyé avec le devis
+            <textarea id="r-intro" rows="6" maxlength="3000"></textarea>
+          </label>
+          <label class="adm-valid">Validité du devis (jours) <input type="number" id="r-days" min="1" max="120" value="30"></label>
+          <p class="form-status" id="r-msg" role="status" aria-live="polite" hidden></p>
+          <div class="adm-actions">
+            <button type="button" class="btn btn--outline" id="r-preview">Aperçu du PDF</button>
+            <button type="button" class="btn btn--outline" id="r-save">Enregistrer sans envoyer</button>
+            <button type="button" class="btn" id="r-send">Envoyer à la cliente</button>
+          </div>
+        </div>
+        <aside class="adm-docs" aria-labelledby="h-docs">
+          <h3 id="h-docs">Devis émis</h3>
+          <ul id="r-docs"></ul>
+        </aside>
       </div>
-    </form>
+    </section>
+
+    <section role="tabpanel" id="panel-follow" aria-labelledby="tab-follow" class="adm-panel" hidden>
+      <form id="d-form" class="adm-form">
+        <label>Statut
+          <select id="d-status" name="status"></select>
+        </label>
+        <label>Montant du devis (€)
+          <input type="number" id="d-amount" name="amount" min="0" max="100000" step="0.01" inputmode="decimal">
+        </label>
+        <label class="adm-wide">Note privée
+          <textarea id="d-note" name="note" rows="3" maxlength="4000" placeholder="Mesures, accord oral, remarques… (invisible pour la cliente)"></textarea>
+        </label>
+        <p class="adm-muted adm-wide" id="d-due"></p>
+        <p class="form-status adm-wide" id="d-status-msg" role="status" aria-live="polite" hidden></p>
+        <div class="adm-actions adm-wide">
+          <button type="submit" class="btn">Enregistrer</button>
+          <button type="button" class="btn btn--outline" id="d-done">Marquer comme rendu</button>
+          <a class="btn btn--outline" id="d-mail" href="#">Écrire à la cliente</a>
+          <button type="button" class="adm-danger" id="d-delete">Supprimer la demande</button>
+        </div>
+      </form>
+    </section>
   </div>
 </dialog>
 
