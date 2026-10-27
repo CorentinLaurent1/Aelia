@@ -32,7 +32,7 @@ body.adm { background: #f4ebe5; }
 .adm-side__link, .adm-side__btn { color: #fff; font: 400 .85rem var(--sans); text-decoration: underline; background: none; border: 0; padding: .3rem 0; text-align: left; cursor: pointer; }
 .adm-side :focus-visible { outline-color: #fff; box-shadow: 0 0 0 6px #5c2415; }
 
-.adm-main { padding: 1.5rem 1.8rem 3rem; min-width: 0; max-width: 1280px; }
+.adm-main { padding: 1.5rem 2rem 3rem; min-width: 0; width: 100%; }
 .adm-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1.1rem; }
 .adm-head h1 { font-size: 2.1rem; color: var(--text); line-height: 1.1; }
 .adm-date { font-size: .8rem; letter-spacing: .12em; text-transform: capitalize; color: var(--muted); margin-bottom: .2rem; }
@@ -254,3 +254,13 @@ body.adm { background: #f4ebe5; }
 
 .adm-login__card .adm-remember { display: flex; gap: .5rem; align-items: center; font-size: .85rem; color: var(--text); }
 .adm-login__card .adm-remember input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent-btn); }
+
+/* La page occupe toute la largeur et toute la hauteur de l'écran, sans bandes vides ni défilement horizontal */
+html, body.adm { width: 100%; min-height: 100%; overflow-x: clip; }
+.adm-shell { width: 100%; min-height: 100vh; min-height: 100dvh; }
+.adm-shell > *, .adm-main > section, .adm-grid2 > *, .adm-stack > * { min-width: 0; }
+.adm-side { min-height: 100vh; min-height: 100dvh; }
+.adm-login { min-height: 100vh; min-height: 100dvh; width: 100%; }
+@media (min-width: 1500px) { .adm-main { padding: 1.8rem 2.6rem 3rem; } .adm-stats { grid-template-columns: repeat(4, 1fr); } .adm-grid2 { grid-template-columns: 1.6fr 1fr; } }
+@media (min-width: 861px) and (max-width: 1100px) { .adm-main { padding: 1.2rem 1.2rem 2rem; } .adm-shell { grid-template-columns: 200px 1fr; } .adm-board { grid-template-columns: repeat(var(--cols, 4), minmax(190px, 1fr)); } }
+@media (max-width: 860px) { .adm-side { min-height: 0; } }
