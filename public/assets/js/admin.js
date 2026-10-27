@@ -67,7 +67,7 @@ $("login-form").addEventListener("submit", async (e) => {
     const res = await fetch("/admin/login", {
       method: "POST", credentials: "same-origin",
       headers: { "Content-Type": "application/json", "X-Requested-With": "aelia" },
-      body: JSON.stringify({ password: $("password").value }),
+      body: JSON.stringify({ password: $("password").value, remember: $("remember").checked }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error === "not_configured" ? "L'espace responsable n'est pas encore configuré (variable ADMIN_PASSWORD)." : data.error || "Connexion impossible.");
@@ -426,12 +426,12 @@ async function cancelAppt(a) {
 async function start() {
   const me = await fetch("/admin/api/me", { credentials: "same-origin", headers: { Accept: "application/json" } }).then((r) => r.json());
   if (!me.configured) {
-    $("login-form").querySelector("label").hidden = true;
+    $("login-form").querySelectorAll("label").forEach((l) => { l.hidden = true; });
     $("login-submit").hidden = true;
     showLogin("L'espace responsable n'est pas encore configuré : ajoutez la variable ADMIN_PASSWORD dans Vercel, puis redéployez.");
     return;
   }
-  if (!me.loggedIn) { $("login-form").querySelector("label").hidden = false; $("login-submit").hidden = false; showLogin(); return; }
+  if (!me.loggedIn) { $("login-form").querySelectorAll("label").forEach((l) => { l.hidden = false; }); $("login-submit").hidden = false; showLogin(); return; }
   $("login").hidden = true;
   $("app").hidden = false;
   go(view);

@@ -1,0 +1,32 @@
+{
+  "name": "Aélia · Espace responsable",
+  "short_name": "Aélia Admin",
+  "description": "Suivi des demandes de devis et des rendez-vous d'Aélia.",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "fr",
+  "background_color": "#a24428",
+  "theme_color": "#a24428",
+  "icons": [
+    {
+      "src": "/assets/images/admin-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/images/admin-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/images/admin-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
