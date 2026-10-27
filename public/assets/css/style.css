@@ -420,3 +420,7 @@ button.linklike:hover { color: #fff; }
 .qt-thumbs img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); }
 .qt-thumb__rm { position: absolute; top: -.45rem; right: -.45rem; width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 0; background: #2b2523; color: #fff; font-size: 1rem; line-height: 1; cursor: pointer; display: grid; place-items: center; }
 .qt-thumb__rm:hover { background: var(--accent-btn); }
+
+/* Onglet « Devis » du menu : même aspect que les autres liens */
+.nav__link { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.nav__link:hover { color: var(--accent-ink); }
