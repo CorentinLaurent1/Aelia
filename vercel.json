@@ -3,7 +3,7 @@
   "functions": {
     "server.js": {
       "maxDuration": 30,
-      "includeFiles": "{index.html,pages/**,config/**,public/**}"
+      "includeFiles": "{index.html,pages/**,config/**,public/**,node_modules/pdfkit/**}"
     }
   },
   "headers": [

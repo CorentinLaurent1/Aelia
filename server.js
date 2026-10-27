@@ -5,7 +5,8 @@ const { DateTime } = require("luxon");
 const calendar = require("./lib/calendar");
 const { computeSlots } = require("./lib/slots");
 const { createToken, readToken } = require("./lib/token");
-const { layout, esc: escMail } = require("./lib/email-template");
+const emails = require("./lib/emails");
+const { esc: escMail } = require("./lib/email-template");
 const multer = require("multer");
 const db = require("./lib/db");
 const services = require("./config/services.json");
@@ -15,10 +16,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_TO, MAIL_FROM } = process.env;
 
-const SERVICES = [
-  "Analyse morphologique", "Analyse colorimétrique", "Étude de style personnalisée",
-  "Tri de dressing", "Accompagnement shopping", "Pack Éclat", "Pack Signature", "Pack Renaissance",
-];
 
 app.disable("x-powered-by");
 app.set("trust proxy", 1); // Vercel est derrière un proxy : IP réelle et https corrects
@@ -113,52 +110,6 @@ function getTransporter() {
   }
   return transporter;
 }
-
-app.post("/api/contact", async (req, res) => {
-  const { service, name, email, msg, website } = req.body || {};
-
-  // Champ piège anti-robots : un humain ne le remplit jamais
-  if (website) return res.json({ ok: true });
-
-  if (tooMany(req.ip)) return res.status(429).json({ error: "Trop de demandes, réessayez plus tard." });
-
-  const clean = (v, max) => String(v || "").trim().slice(0, max);
-  const data = { service: clean(service, 80), name: clean(name, 100), email: clean(email, 150), msg: clean(msg, 2000) };
-
-  if (!SERVICES.includes(data.service) || !data.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-    return res.status(400).json({ error: "Formulaire incomplet ou invalide." });
-  }
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !MAIL_TO) {
-    console.error("Variables SMTP manquantes");
-    return res.status(500).json({ error: "Service d'envoi non configuré." });
-  }
-
-  const from = MAIL_FROM || SMTP_USER;
-  try {
-    const t = getTransporter();
-    // 1. Notification pour vous (reply-to = la cliente)
-    await t.sendMail({
-      from, to: MAIL_TO, replyTo: `"${data.name.replace(/"/g, "")}" <${data.email}>`,
-      subject: `Nouvelle demande : ${data.service}`,
-      text: `Prestation : ${data.service}\nNom : ${data.name}\nE-mail : ${data.email}\n\nMessage :\n${data.msg || "(aucun)"}`,
-      html: `<h2>Nouvelle demande de rendez-vous</h2><p><b>Prestation :</b> ${esc(data.service)}<br><b>Nom :</b> ${esc(data.name)}<br><b>E-mail :</b> ${esc(data.email)}</p><p><b>Message :</b><br>${esc(data.msg || "(aucun)").replace(/\n/g, "<br>")}</p>`,
-    });
-    // 2. Accusé de réception pour la cliente (son échec ne bloque pas la demande)
-    t.sendMail({
-      from, to: data.email, replyTo: MAIL_TO,
-      subject: "Votre demande a bien été reçue · Aélia",
-      text: `Bonjour ${data.name},\n\nJ'ai bien reçu votre demande pour : ${data.service}.\nJe reviens vers vous très vite pour convenir d'un créneau.\n\nÀ bientôt,\nLaësia · Aélia, conseil en style et image`,
-      html: `<p>Bonjour ${esc(data.name)},</p><p>J'ai bien reçu votre demande pour : <b>${esc(data.service)}</b>.<br>Je reviens vers vous très vite pour convenir d'un créneau.</p><p>À bientôt,<br>Laësia · <i>Aélia, conseil en style et image</i></p>`,
-    }).catch((e) => console.error("Accusé de réception non envoyé :", e.message));
-
-    await flushMail();
-    res.json({ ok: true });
-  } catch (e) {
-    console.error("Échec d'envoi :", e.message);
-    res.status(502).json({ error: "L'envoi a échoué." });
-  }
-});
-
 
 // ---------- Réservation synchronisée avec l'agenda iCloud ----------
 const serviceById = (id) => services.find((s) => s.id === id);
@@ -273,32 +224,13 @@ async function handleBooking(req, res) {
   if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
     const from = MAIL_FROM || SMTP_USER;
     const t = getTransporter();
-    if (MAIL_TO) t.sendMail({
-      from, to: MAIL_TO, replyTo: `"${d.name.replace(/"/g, "")}" <${d.email}>`,
-      subject: `Nouveau rendez-vous : ${svc.name} · ${when}`,
-      text: `${svc.name} (${svc.price})\n${when}\n\n${d.name}\n${d.email}\n${d.phone || ""}\n\n${d.msg || ""}`,
-      html: layout({
-        base, preheader: `${d.name} · ${svc.name} · ${when}`, title: "Nouveau rendez-vous",
-        intro: `<p style="margin:0">Une cliente vient de réserver en ligne. Le rendez-vous est déjà dans votre agenda.</p>`,
-        rows: [["Prestation", `${esc(svc.name)} · ${esc(duration)} · ${esc(svc.price)}`], ["Date", esc(when)], ["Cliente", esc(d.name)], ["E-mail", esc(d.email)], ["Téléphone", esc(d.phone || "-")], ["Message", esc(d.msg || "-").replace(/\n/g, "<br>")]],
-        outro: `<p style="margin:0">Répondez directement à cet e-mail pour écrire à la cliente.</p>`,
-      }),
-      attachments,
-    }).catch((e) => console.error("Notification non envoyée :", e.message));
-    await t.sendMail({
-      from, to: d.email, replyTo: MAIL_TO || from,
-      subject: `Votre rendez-vous Aélia est confirmé · ${when}`,
-      text: `Bonjour ${d.name},\n\nVotre rendez-vous est confirmé :\n${svc.name}\n${when}\n\nJe vous précise très vite les modalités pratiques et de règlement. Pour annuler ou déplacer votre rendez-vous (jusqu'à ${cfg.cancelBeforeHours} h avant) : ${cancelUrl}\n\nÀ bientôt,\nLaësia · Aélia, conseil en style et image`,
-      html: layout({
-        base, preheader: `Rendez-vous confirmé : ${svc.name}, ${when}`, title: "Votre rendez-vous est confirmé",
-        intro: `<p style="margin:0">Bonjour ${esc(d.name)},<br>merci pour votre confiance. Je suis ravie de vous retrouver très bientôt.</p>`,
-        rows: [["Prestation", esc(svc.name)], ["Date et heure", esc(when)], ["Durée", esc(duration)], ["Tarif", esc(svc.price)]],
-        outro: `<p style="margin:0">Je vous précise très vite les modalités pratiques et de règlement. L'invitation jointe à cet e-mail vous permet d'ajouter le rendez-vous à votre agenda.</p>`,
-        button: { url: cancelUrl, label: "Annuler ou déplacer mon rendez-vous" },
-        note: `Annulation possible en ligne jusqu'à ${cfg.cancelBeforeHours} h avant le rendez-vous.`,
-      }),
-      attachments,
-    }).then(() => { emailSent = true; }).catch((e) => console.error("Confirmation non envoyée :", e.message));
+    const data = { base, name: d.name, service: svc.name, when, duration, price: svc.price, cancelUrl, cancelHours: cfg.cancelBeforeHours };
+    if (MAIL_TO) {
+      t.sendMail({ from, to: MAIL_TO, replyTo: `"${d.name.replace(/"/g, "")}" <${d.email}>`, ...emails.bookingOwner({ ...data, email: d.email, phone: d.phone, msg: d.msg }), attachments })
+        .catch((e) => console.error("Notification non envoyée :", e.message));
+    }
+    await t.sendMail({ from, to: d.email, replyTo: MAIL_TO || from, ...emails.bookingClient(data), attachments })
+      .then(() => { emailSent = true; }).catch((e) => console.error("Confirmation non envoyée :", e.message));
   }
   await flushMail();
   res.json({ ok: true, service: svc.name, when, duration, emailSent, cancelUrl, ics: event.ics });
@@ -345,7 +277,6 @@ app.post("/api/quote", (req, res, next) => {
   const from = MAIL_FROM || SMTP_USER;
   const t = getTransporter();
   const typeLabel = QUOTE_TYPES[c.type];
-  const delay = c.type === "retouche" ? [["Délai de réalisation", "environ 1 semaine après validation du devis"]] : [];
 
   // 1. Enregistrement dans le tableau de bord (la demande n'est jamais perdue)
   let ref = "";
@@ -356,14 +287,7 @@ app.post("/api/quote", (req, res, next) => {
   try {
     await t.sendMail({
       from, to: MAIL_TO, replyTo: `"${c.name.replace(/"/g, "")}" <${c.email}>`,
-      subject: `Demande de devis${ref ? " " + ref : ""} · ${typeLabel} · ${c.name}`,
-      text: `${typeLabel}\n${c.name} · ${c.email} · ${c.phone || "sans téléphone"}\n\n${c.msg}\n\n${photos.length} photo(s) jointe(s).`,
-      html: layout({
-        base, preheader: `${c.name} · ${typeLabel}`, title: "Nouvelle demande de devis",
-        intro: `<p style="margin:0">Une cliente demande un devis depuis le site. Répondez directement à cet e-mail pour lui écrire.</p>`,
-        rows: [...(ref ? [["Référence", escMail(ref)]] : []), ["Type de demande", escMail(typeLabel)], ["Cliente", escMail(c.name)], ["E-mail", escMail(c.email)], ["Téléphone", escMail(c.phone || "-")], ["Photos jointes", String(photos.length)], ["Demande", escMail(c.msg).replace(/\n/g, "<br>")]],
-        button: ref ? { url: base + "/admin", label: "Ouvrir mon tableau de bord" } : undefined,
-      }),
+      ...emails.quoteOwner({ base, ref, typeLabel, name: c.name, email: c.email, phone: c.phone, msg: c.msg, photos: photos.length }),
       attachments: photos,
     });
   } catch (e) {
@@ -373,17 +297,8 @@ app.post("/api/quote", (req, res, next) => {
   }
   // Accusé de réception pour la cliente (son échec ne remet pas en cause la demande)
   let ackSent = false;
-  await t.sendMail({
-    from, to: c.email, replyTo: MAIL_TO,
-    subject: "J'ai bien reçu votre demande de devis · Aélia",
-    text: `Bonjour ${c.name},\n\nJ'ai bien reçu votre demande de devis (${typeLabel}) et je reviens vers vous très vite.${c.type === "retouche" ? "\nDélai de réalisation des retouches : environ une semaine après validation du devis." : ""}\n\nÀ bientôt,\nLaësia · Aélia`,
-    html: layout({
-      base, preheader: "Votre demande de devis est bien reçue", title: "Votre demande est bien reçue",
-      intro: `<p style="margin:0">Bonjour ${escMail(c.name)},<br>merci pour votre demande. Je l'étudie avec attention et je reviens vers vous très vite avec un devis.</p>`,
-      rows: [...(ref ? [["Référence", escMail(ref)]] : []), ["Votre demande", escMail(typeLabel)], ["Photos transmises", String(photos.length)], ...delay, ["Votre message", escMail(c.msg).replace(/\n/g, "<br>")]],
-      note: "Vous pouvez répondre à cet e-mail pour ajouter des précisions.",
-    }),
-  }).then(() => { ackSent = true; }).catch((e) => console.error("Accusé de réception du devis non envoyé :", e.message));
+  await t.sendMail({ from, to: c.email, replyTo: MAIL_TO, ...emails.quoteAck({ base, ref, typeLabel, name: c.name, msg: c.msg, photos: photos.length, retouche: c.type === "retouche" }) })
+    .then(() => { ackSent = true; }).catch((e) => console.error("Accusé de réception du devis non envoyé :", e.message));
   await flushMail();
   res.json({ ok: true, ackSent, ref });
 });
@@ -447,28 +362,10 @@ async function handleCancel(req, res) {
   if (removed && SMTP_HOST && SMTP_USER && SMTP_PASS) {
     const from = MAIL_FROM || SMTP_USER;
     const t = getTransporter();
-    const subject = `Rendez-vous annulé · ${ap.when}`;
     const base = (process.env.SITE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
-    if (MAIL_TO) t.sendMail({
-      from, to: MAIL_TO, subject,
-      text: `${ap.a.n} (${ap.a.e}) a annulé : ${ap.service}, ${ap.when}.`,
-      html: layout({
-        base, preheader: `${ap.a.n} a annulé : ${ap.service}`, title: "Rendez-vous annulé",
-        intro: `<p style="margin:0">Une cliente a annulé son rendez-vous. Le créneau est de nouveau libre dans votre agenda.</p>`,
-        rows: [["Prestation", escMail(ap.service)], ["Date", escMail(ap.when)], ["Cliente", escMail(ap.a.n)], ["E-mail", escMail(ap.a.e)]],
-      }),
-    }).catch((e) => console.error("Notification d'annulation non envoyée :", e.message));
-    t.sendMail({
-      from, to: ap.a.e, replyTo: MAIL_TO || from, subject,
-      text: `Bonjour ${ap.a.n},\n\nVotre rendez-vous (${ap.service}, ${ap.when}) est bien annulé. Pensez à le supprimer de votre agenda.\n\nVous pouvez reprendre rendez-vous quand vous le souhaitez sur le site.\n\nÀ bientôt,\nLaësia · Aélia`,
-      html: layout({
-        base, preheader: "Votre rendez-vous est annulé", title: "Votre rendez-vous est annulé",
-        intro: `<p style="margin:0">Bonjour ${escMail(ap.a.n)},<br>votre rendez-vous est bien annulé. Pensez à le supprimer de votre agenda.</p>`,
-        rows: [["Prestation", escMail(ap.service)], ["Date", escMail(ap.when)]],
-        outro: `<p style="margin:0">Vous pouvez reprendre rendez-vous quand vous le souhaitez.</p>`,
-        button: { url: base + "/", label: "Reprendre rendez-vous" },
-      }),
-    }).catch((e) => console.error("Confirmation d'annulation non envoyée :", e.message));
+    const data = { base, name: ap.a.n, email: ap.a.e, service: ap.service, when: ap.when };
+    if (MAIL_TO) t.sendMail({ from, to: MAIL_TO, ...emails.cancelOwner(data) }).catch((e) => console.error("Notification d'annulation non envoyée :", e.message));
+    t.sendMail({ from, to: ap.a.e, replyTo: MAIL_TO || from, ...emails.cancelClient(data) }).catch((e) => console.error("Confirmation d'annulation non envoyée :", e.message));
   }
   await flushMail();
   res.json({ ok: true });
@@ -476,7 +373,7 @@ async function handleCancel(req, res) {
 
 // ---------- Espace responsable (tableau de bord) ----------
 require("./lib/admin-routes")(app, {
-  calendar, cfg, pageHtml, layout, esc: escMail, getTransporter, flushMail, MAIL_FROM, SMTP_USER, MAIL_TO, siteUrl, fmtDay,
+  calendar, cfg, pageHtml, emails, getTransporter, flushMail, MAIL_FROM, SMTP_USER, MAIL_TO, siteUrl, fmtDay,
   mailConfigured: () => Boolean(SMTP_HOST && SMTP_USER && SMTP_PASS),
 });
 

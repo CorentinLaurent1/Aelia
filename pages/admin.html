@@ -173,6 +173,16 @@
   </div>
 </dialog>
 
+<!-- Confirmation dans la page (remplace les fenêtres du navigateur) -->
+<dialog id="ask" class="adm-ask" aria-labelledby="ask-title" aria-describedby="ask-text">
+  <h2 id="ask-title">Confirmation</h2>
+  <p id="ask-text"></p>
+  <div class="adm-actions">
+    <button type="button" class="btn btn--outline" id="ask-no">Annuler</button>
+    <button type="button" class="btn" id="ask-yes">Confirmer</button>
+  </div>
+</dialog>
+
 <script src="/assets/js/admin.js" defer></script>
 </body>
 </html>

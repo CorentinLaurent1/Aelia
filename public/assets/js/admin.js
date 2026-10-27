@@ -52,6 +52,23 @@ async function api(path, { method = "GET", body, raw } = {}) {
   return data;
 }
 
+// Confirmation dans la page : renvoie true si la responsable confirme
+function ask(title, text, yes = "Confirmer", danger = false) {
+  return new Promise((resolve) => {
+    const d = $("ask");
+    $("ask-title").textContent = title;
+    $("ask-text").textContent = text;
+    $("ask-yes").textContent = yes;
+    $("ask-yes").classList.toggle("btn--danger", danger);
+    const done = (v) => { d.close(); $("ask-yes").onclick = $("ask-no").onclick = null; d.onclose = null; resolve(v); };
+    $("ask-yes").onclick = () => done(true);
+    $("ask-no").onclick = () => done(false);
+    d.onclose = () => resolve(false);
+    d.showModal();
+    $("ask-no").focus();
+  });
+}
+
 // ---------- Connexion ----------
 function showLogin(info = "") {
   $("app").hidden = true;
@@ -293,7 +310,7 @@ async function save(extra = {}) {
 $("d-form").addEventListener("submit", (e) => { e.preventDefault(); save(); });
 $("d-done").addEventListener("click", () => { $("d-status").value = "rendu"; save({ status: "rendu" }); });
 $("d-delete").addEventListener("click", async () => {
-  if (!confirm(`Supprimer définitivement la demande ${current.ref} de ${current.name}, ses photos, ses devis et ses notes ?`)) return;
+  if (!(await ask("Supprimer cette demande ?", `La demande ${current.ref} de ${current.name}, ses photos, ses devis et ses notes seront supprimés définitivement.`, "Supprimer", true))) return;
   try { await api(`/quotes/${current.id}`, { method: "DELETE" }); dlg.close(); } catch (e) { say("d-status-msg", e.message, false); }
 });
 
@@ -321,7 +338,7 @@ function prepareReply(q) {
     lines = item ? [{ label: item.label, note: item.note, qty: 1, unit: item.unit, kind: item.kind }] : [];
     $("r-days").value = 30;
     const first = q.name.split(/\s+/)[0];
-    $("r-intro").value = `Bonjour ${first},\n\nMerci pour votre demande. Vous trouverez ci-joint mon devis${q.type === "retouche" ? " pour vos retouches (délai de réalisation d'environ une semaine après validation)" : ""}.\n\nN'hésitez pas à me poser la moindre question.\n\nÀ bientôt,\nLaësia`;
+    $("r-intro").value = `Bonjour ${first},\n\nMerci pour votre demande. Vous trouverez ci-joint mon devis${q.type === "retouche" ? " pour vos retouches (délai de réalisation d'environ une semaine après validation)" : ""}.\n\nN'hésitez pas à me poser la moindre question.`;
     $("r-hint").textContent = q.type === "retouche"
       ? "Demande de retouches : l'ourlet simple est déjà ajouté. Indiquez la quantité d'après le message et les photos."
       : q.type === "style" ? "Demande de conseil en style : choisissez dans le catalogue la ou les prestations qui conviennent." : "Autre demande : ajoutez des lignes du catalogue ou des lignes libres.";
@@ -385,8 +402,8 @@ async function submitDoc(send) {
 $("r-save").addEventListener("click", () => busy($("r-save"), "Enregistrement…", async () => {
   try { await submitDoc(false); } catch (e) { say("r-msg", e.message === "login" ? "Session expirée." : e.message, false); }
 }));
-$("r-send").addEventListener("click", () => {
-  if (!confirm(`Envoyer ce devis de ${euro(lineTotal())} à ${current.name} (${current.email}) ?`)) return;
+$("r-send").addEventListener("click", async () => {
+  if (!(await ask("Envoyer ce devis ?", `Le devis de ${euro(lineTotal())} sera envoyé à ${current.name} (${current.email}), avec le PDF en pièce jointe.`, "Envoyer"))) return;
   busy($("r-send"), "Envoi en cours…", async () => {
     try { await submitDoc(true); } catch (e) {
       say("r-msg", e.message === "login" ? "Session expirée." : e.message, false);
@@ -418,7 +435,7 @@ function apptCard(a) {
       el("button", { type: "button", class: "adm-danger", onclick: () => cancelAppt(a) }, "Annuler", el("span", { class: "sr-only", text: ` le rendez-vous de ${a.name}` }))));
 }
 async function cancelAppt(a) {
-  if (!confirm(`Annuler le rendez-vous de ${a.name} (${a.service}) ? Un e-mail d'excuses lui sera envoyé.`)) return;
+  if (!(await ask("Annuler ce rendez-vous ?", `Le rendez-vous de ${a.name} (${a.service}) sera supprimé de votre agenda et un e-mail d'excuses lui sera envoyé.`, "Annuler le rendez-vous", true))) return;
   try { await api("/appointments/cancel", { method: "POST", body: { uid: a.uid } }); refresh(); } catch (e) { if (e.message !== "login") notice(e.message); }
 }
 

@@ -264,3 +264,13 @@ html, body.adm { width: 100%; min-height: 100%; overflow-x: clip; }
 @media (min-width: 1500px) { .adm-main { padding: 1.8rem 2.6rem 3rem; } .adm-stats { grid-template-columns: repeat(4, 1fr); } .adm-grid2 { grid-template-columns: 1.6fr 1fr; } }
 @media (min-width: 861px) and (max-width: 1100px) { .adm-main { padding: 1.2rem 1.2rem 2rem; } .adm-shell { grid-template-columns: 200px 1fr; } .adm-board { grid-template-columns: repeat(var(--cols, 4), minmax(190px, 1fr)); } }
 @media (max-width: 860px) { .adm-side { min-height: 0; } }
+
+/* Boîte de confirmation */
+.adm-ask { width: min(420px, 92vw); border: 0; border-radius: 22px; padding: 1.5rem 1.6rem; background: var(--bg); box-shadow: 0 30px 80px rgba(60, 30, 20, .4); }
+.adm-ask::backdrop { background: rgba(43, 37, 35, .6); backdrop-filter: blur(3px); }
+.adm-ask[open] { animation: popIn .25s ease both; }
+.adm-ask h2 { font-size: 1.5rem; color: var(--accent-ink); margin-bottom: .5rem; }
+.adm-ask p { font-size: .95rem; color: var(--text); line-height: 1.55; margin-bottom: 1rem; }
+.adm-ask .adm-actions { justify-content: flex-end; }
+.btn--danger { background: #8a1c10 !important; border-color: #8a1c10 !important; }
+@media (max-width: 860px) { .adm-ask .adm-actions .btn { flex: 1 1 100%; } .adm-ask { margin-bottom: calc(1rem + env(safe-area-inset-bottom)); } }
