@@ -35,14 +35,34 @@ app.use("/assets", express.static(path.join(__dirname, "public", "assets"), {
     res.setHeader("Cache-Control", /\.(css|js)$/.test(file) ? "no-cache" : "public, max-age=604800");
   },
 }));
-app.use("/pages", express.static(path.join(__dirname, "pages")));
-const siteUrl = (req) => (process.env.SITE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
 const fs = require("fs");
+const crypto = require("crypto");
+
+// Chaque fichier CSS/JS est appelé avec une empreinte de son contenu (style.css?v=ab12cd34) :
+// dès qu'il change, le navigateur le recharge, même s'il en gardait une ancienne copie.
+const stamps = new Map();
+function stampOf(rel) {
+  if (!stamps.has(rel)) {
+    try { stamps.set(rel, crypto.createHash("md5").update(fs.readFileSync(path.join(__dirname, "public", rel))).digest("hex").slice(0, 8)); }
+    catch { stamps.set(rel, "0"); }
+  }
+  return stamps.get(rel);
+}
+const versioned = (html) => html.replace(/(?:\.\.\/|\/)?(assets\/(?:css|js)\/[\w.-]+\.(?:css|js))(?=")/g, (m, rel) => `${m}?v=${stampOf(rel)}`);
+
+// Pages HTML (légales, annulation, 404) : mêmes empreintes
+const pageHtml = (name) => versioned(fs.readFileSync(path.join(__dirname, "pages", name), "utf8"));
+app.get("/pages/:name", (req, res, next) => {
+  const name = path.basename(req.params.name);
+  if (!/^[\w-]+\.html$/.test(name) || !fs.existsSync(path.join(__dirname, "pages", name))) return next();
+  res.type("html").send(pageHtml(name));
+});
+const siteUrl = (req) => (process.env.SITE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
 let indexHtml;
 app.get("/", (req, res) => {
   indexHtml = indexHtml || fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
   res.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=86400");
-  res.type("html").send(indexHtml.replace(/__SITE_URL__/g, siteUrl(req)));
+  res.type("html").send(versioned(indexHtml.replace(/__SITE_URL__/g, siteUrl(req))));
 });
 // Anciens liens vers index.html : retour à l'accueil
 app.get(["/index.html", "/pages/index.html"], (_req, res) => res.redirect(301, "/"));
@@ -358,7 +378,7 @@ app.post("/api/quote", async (req, res) => {
 });
 
 // ---------- Gestion d'un rendez-vous par la cliente (lien signé reçu par e-mail) ----------
-app.get("/rendez-vous/annuler", (_req, res) => res.sendFile(path.join(__dirname, "pages", "annulation.html")));
+app.get("/rendez-vous/annuler", (_req, res) => res.type("html").send(pageHtml("annulation.html")));
 
 function appointmentFromToken(t) {
   const a = readToken(t);
@@ -444,7 +464,7 @@ async function handleCancel(req, res) {
 }
 
 // Page 404 aux couleurs du site
-app.use((_req, res) => res.status(404).sendFile(path.join(__dirname, "pages", "404.html")));
+app.use((_req, res) => res.status(404).type("html").send(pageHtml("404.html")));
 
 // Vercel importe l'application ; un hébergeur classique (ou `npm start`) lance le serveur.
 if (require.main === module) app.listen(PORT, () => console.log(`Aélia sur http://localhost:${PORT}`));
