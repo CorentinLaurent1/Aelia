@@ -1,12 +1,81 @@
 [
-  { "id": "analyse-morphologique", "name": "Analyse morphologique", "minutes": 60, "price": "70 €" },
-  { "id": "analyse-colorimetrique", "name": "Analyse colorimétrique", "minutes": 90, "price": "105 €" },
-  { "id": "etude-de-style", "name": "Étude de style personnalisée", "minutes": 120, "price": "140 €" },
-  { "id": "tri-de-dressing", "name": "Tri de dressing", "minutes": 180, "price": "210 €" },
-  { "id": "shopping-1h", "name": "Accompagnement shopping · 1h", "minutes": 60, "price": "70 €" },
-  { "id": "shopping-2h", "name": "Accompagnement shopping · 2h", "minutes": 120, "price": "140 €" },
-  { "id": "shopping-3h", "name": "Accompagnement shopping · 3h", "minutes": 180, "price": "210 €" },
-  { "id": "pack-eclat", "name": "Pack Éclat", "minutes": 210, "price": "225 €" },
-  { "id": "pack-signature", "name": "Pack Signature", "minutes": 270, "price": "300 €" },
-  { "id": "pack-renaissance", "name": "Pack Renaissance", "minutes": 360, "price": "360 €" }
+  {
+    "id": "analyse-morphologique",
+    "name": "Analyse morphologique",
+    "minutes": 60,
+    "price": "70 €",
+    "amount": 70
+  },
+  {
+    "id": "analyse-colorimetrique",
+    "name": "Analyse colorimétrique",
+    "minutes": 90,
+    "price": "105 €",
+    "amount": 105
+  },
+  {
+    "id": "etude-de-style",
+    "name": "Étude de style personnalisée",
+    "minutes": 120,
+    "price": "140 €",
+    "amount": 140
+  },
+  {
+    "id": "tri-de-dressing",
+    "name": "Tri de dressing",
+    "minutes": 180,
+    "price": "210 €",
+    "amount": 210
+  },
+  {
+    "id": "shopping-1h",
+    "name": "Accompagnement shopping · 1h",
+    "minutes": 60,
+    "price": "70 €",
+    "amount": 70
+  },
+  {
+    "id": "shopping-2h",
+    "name": "Accompagnement shopping · 2h",
+    "minutes": 120,
+    "price": "140 €",
+    "amount": 140
+  },
+  {
+    "id": "shopping-3h",
+    "name": "Accompagnement shopping · 3h",
+    "minutes": 180,
+    "price": "210 €",
+    "amount": 210
+  },
+  {
+    "id": "pack-eclat",
+    "name": "Pack Éclat",
+    "minutes": 210,
+    "price": "225 €",
+    "amount": 225
+  },
+  {
+    "id": "pack-signature",
+    "name": "Pack Signature",
+    "minutes": 270,
+    "price": "300 €",
+    "amount": 300
+  },
+  {
+    "id": "pack-renaissance",
+    "name": "Pack Renaissance",
+    "minutes": 360,
+    "price": "360 €",
+    "amount": 360
+  },
+  {
+    "id": "retouche-ourlet",
+    "name": "Ourlet simple",
+    "minutes": 0,
+    "price": "12 €",
+    "amount": 12,
+    "category": "retouche",
+    "quoteOnly": true
+  }
 ]

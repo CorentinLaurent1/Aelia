@@ -26,32 +26,43 @@
   <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Jost:wght@300;400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Jost:wght@300;400;500&display=swap"></noscript>
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
+<a class="skip-link" href="#contenu">Aller au contenu principal</a>
+<!-- Bandeau cookies -->
+<div class="cookies" id="cookies" role="region" aria-label="Gestion des cookies" hidden>
+  <p>Ce site utilise uniquement des cookies strictement nécessaires à son fonctionnement. Aucun cookie publicitaire ou de mesure d'audience n'est déposé sans votre consentement. <a href="pages/confidentialite.html">En savoir plus</a></p>
+  <div>
+    <button class="btn btn--small" data-cookie="yes">Tout accepter</button>
+    <button class="btn btn--small btn--outline" data-cookie="no">Tout refuser</button>
+  </div>
+</div>
+
 
 <header class="nav">
   <div class="nav__inner">
-    <a href="#top" class="logo" aria-label="Aélia, accueil"><img class="logo__img" src="assets/images/monogramme.png" alt="" width="36" height="42"><span>AÉLIA</span></a>
-    <button class="nav__toggle" aria-label="Menu" aria-expanded="false"><span></span><span></span></button>
-    <nav class="nav__links">
+    <a href="#contenu" class="logo" aria-label="Aélia, retour en haut de page"><img class="logo__img" src="assets/images/monogramme.png" alt="" width="36" height="42"><span>AÉLIA</span></a>
+    <button class="nav__toggle" type="button" aria-label="Menu" aria-controls="nav-links" aria-expanded="false"><span></span><span></span></button>
+    <nav class="nav__links" id="nav-links" aria-label="Navigation principale">
       <a href="#prestations">Prestations</a>
       <a href="#formules">Formules</a>
       <a href="#apropos">À propos</a>
-      <a href="#" class="btn btn--small" data-book="">Prendre rendez-vous</a>
+      <button type="button" class="btn btn--small" data-book="">Prendre rendez-vous</button>
     </nav>
   </div>
 </header>
 
-<main id="top">
+<main id="contenu" tabindex="-1">
   <section class="hero">
     <img class="hero__logo" src="assets/images/monogramme.png" alt="Monogramme Aélia" width="70" height="81">
     <p class="eyebrow">Conseillère en image · Orléans</p>
     <h1>Révélez votre style,<br><em>affirmez qui vous êtes.</em></h1>
     <p class="hero__text">Conseillère en style et en image à Orléans et dans le Loiret, je vous propose des prestations sur-mesure pour révéler votre style, valoriser votre image et renforcer votre confiance, avec douceur, bienveillance et professionnalisme.</p>
     <div class="hero__cta">
-      <a href="#" class="btn btn--lg" data-book="">Prendre rendez-vous</a>
+      <button type="button" class="btn btn--lg" data-book="">Prendre rendez-vous</button>
       <a href="#prestations" class="btn btn--outline btn--lg">Découvrir les prestations</a>
     </div>
   </section>
@@ -71,7 +82,7 @@
           <li>Conseils sur les coupes, matières et longueurs</li>
           <li>Recommandations pour sublimer votre morphologie</li>
         </ul>
-        <a href="#" class="card__link" data-book="Analyse morphologique">Réserver ce rendez-vous →</a>
+        <button type="button" class="card__link" data-book="Analyse morphologique">Réserver ce rendez-vous<span class="sr-only"> : Analyse morphologique</span> →</button>
       </article>
         <article class="card">
         <header><h4>Analyse colorimétrique</h4><p class="meta">1h30 · <strong>105 €</strong></p></header>
@@ -81,7 +92,7 @@
           <li>Identification de votre palette idéale</li>
           <li>Conseils couleurs pour vêtements, accessoires et maquillage</li>
         </ul>
-        <a href="#" class="card__link" data-book="Analyse colorimétrique">Réserver ce rendez-vous →</a>
+        <button type="button" class="card__link" data-book="Analyse colorimétrique">Réserver ce rendez-vous<span class="sr-only"> : Analyse colorimétrique</span> →</button>
       </article>
       </div>
     </div>
@@ -96,7 +107,7 @@
           <li>Identification de votre style et de vos inspirations</li>
           <li>Conseils personnalisés pour un dressing cohérent et aligné</li>
         </ul>
-        <a href="#" class="card__link" data-book="Étude de style personnalisée">Réserver ce rendez-vous →</a>
+        <button type="button" class="card__link" data-book="Étude de style personnalisée">Réserver ce rendez-vous<span class="sr-only"> : Étude de style personnalisée</span> →</button>
       </article>
         <article class="card">
         <header><h4>Tri de dressing</h4><p class="meta">3h · <strong>210 €</strong></p></header>
@@ -106,7 +117,7 @@
           <li>Identification des manques et des indispensables</li>
           <li>Conseils pour mieux associer vos vêtements</li>
         </ul>
-        <a href="#" class="card__link" data-book="Tri de dressing">Réserver ce rendez-vous →</a>
+        <button type="button" class="card__link" data-book="Tri de dressing">Réserver ce rendez-vous<span class="sr-only"> : Tri de dressing</span> →</button>
       </article>
       </div>
     </div>
@@ -119,7 +130,17 @@
         <div class="chips">
           <span>1h<b>70 €</b></span><span>2h<b>140 €</b></span><span>3h<b>210 €</b></span><span>+1h<b>70 €</b></span>
         </div>
-        <a href="#" class="card__link" data-book="Accompagnement shopping">Réserver ce rendez-vous →</a>
+        <button type="button" class="card__link" data-book="Accompagnement shopping">Réserver ce rendez-vous<span class="sr-only"> : Accompagnement shopping</span> →</button>
+      </article>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group__head"><span class="group__num">04</span><div><h3>Retoucher</h3><p>Des vêtements ajustés pour qu'ils vous aillent vraiment.</p></div></div>
+      <div class="grid grid--1">
+        <article class="card card--wide">
+        <header><h4>Retouches de vêtements</h4><p class="meta">l'ourlet simple · <strong>12 €</strong></p></header>
+        <p>Je raccourcis vos pantalons, jupes et robes avec un ourlet simple pour qu'ils tombent parfaitement. Le prix est par pièce, et vous recevez votre devis par e-mail en quelques secondes.</p>
+        <button type="button" class="card__link" data-quote>Demander un devis<span class="sr-only"> de retouche (ourlet simple)</span> →</button>
       </article>
       </div>
     </div>
@@ -140,7 +161,7 @@
           <li>Analyse colorimétrique</li>
           <li>Analyse morphologique</li>
         </ul>
-        <a href="#" class="btn btn--outline" data-book="Pack Éclat">Choisir ce pack</a>
+        <button type="button" class="btn btn--outline" data-book="Pack Éclat">Choisir ce pack<span class="sr-only"> Pack Éclat</span></button>
       </article>
 
       <article class="pack pack--featured">
@@ -154,7 +175,7 @@
           <li>Analyse morphologique</li>
           <li>Étude de style personnalisée</li>
         </ul>
-        <a href="#" class="btn btn--light" data-book="Pack Signature">Choisir ce pack</a>
+        <button type="button" class="btn btn--light" data-book="Pack Signature">Choisir ce pack<span class="sr-only"> Pack Signature</span></button>
       </article>
 
       <article class="pack">
@@ -169,7 +190,7 @@
           <li>Étude de style personnalisée</li>
           <li>Tri de dressing</li>
         </ul>
-        <a href="#" class="btn btn--outline" data-book="Pack Renaissance">Choisir ce pack</a>
+        <button type="button" class="btn btn--outline" data-book="Pack Renaissance">Choisir ce pack<span class="sr-only"> Pack Renaissance</span></button>
       </article>
     </div>
   </section>
@@ -177,7 +198,7 @@
   <section class="section section--alt about" id="apropos">
     <div class="about__inner">
       <div class="about__photo">
-        <img src="assets/images/laesia.jpg" alt="Laësia Laurent, conseillère en style et image, avec son diplôme de l'Atelier Chardon Savard" width="520" height="693" loading="lazy">
+        <img src="assets/images/laesia.jpg" alt="Laësia Laurent, conseillère en style et image, avec son diplôme de l'Atelier Chardon Savard" width="420" height="560" loading="lazy">
       </div>
       <div class="about__text">
         <p class="eyebrow">À propos</p>
@@ -192,17 +213,20 @@
 
   <section class="section promise">
     <div class="grid grid--4">
-      <div><h4>Ma promesse</h4><p>Chaque femme est unique. Mon objectif : révéler votre meilleure version, avec douceur, bienveillance et professionnalisme.</p></div>
-      <div><h4>Accompagnement personnalisé</h4><p>Des solutions adaptées à votre personnalité et votre quotidien.</p></div>
-      <div><h4>Bienveillance et écoute</h4><p>Un espace d'échange bienveillant pour vous mettre en valeur.</p></div>
-      <div><h4>Expertise et passion</h4><p>Une expertise au service de votre image et de votre confiance en vous.</p></div>
+      <div><h3>Ma promesse</h3><p>Chaque femme est unique. Mon objectif : révéler votre meilleure version, avec douceur, bienveillance et professionnalisme.</p></div>
+      <div><h3>Accompagnement personnalisé</h3><p>Des solutions adaptées à votre personnalité et votre quotidien.</p></div>
+      <div><h3>Bienveillance et écoute</h3><p>Un espace d'échange bienveillant pour vous mettre en valeur.</p></div>
+      <div><h3>Expertise et passion</h3><p>Une expertise au service de votre image et de votre confiance en vous.</p></div>
     </div>
   </section>
 
   <section class="section section--alt cta">
     <h2>Prête à révéler <em>votre</em> style ?</h2>
-    <p>Choisissez la prestation qui vous correspond et prenez contact : je reviens vers vous pour convenir ensemble d'un rendez-vous.</p>
-    <a href="#" class="btn" data-book="">Prendre rendez-vous</a>
+    <p>Choisissez votre prestation et votre créneau en ligne, ou demandez un devis gratuit : je vous l'envoie par e-mail en quelques secondes.</p>
+    <div class="hero__cta">
+      <button type="button" class="btn btn--lg" data-book="">Prendre rendez-vous</button>
+      <button type="button" class="btn btn--outline btn--lg" data-quote>Demander un devis</button>
+    </div>
   </section>
 </main>
 
@@ -216,16 +240,53 @@
       <span>© 2026 Aélia. Tous droits réservés.</span>
       <a href="pages/mentions-legales.html">Mentions légales</a>
       <a href="pages/cgv.html">CGV</a>
+      <a href="pages/accessibilite.html">Accessibilité</a>
       <a href="pages/confidentialite.html">Politique de confidentialité</a>
-      <a href="#" id="manage-cookies">Gérer les cookies</a>
+      <button type="button" class="linklike" id="manage-cookies">Gérer les cookies</button>
     </div>
   </div>
 </footer>
 
+<!-- Demande de devis (PDF envoyé par e-mail) -->
+<dialog id="quote" aria-labelledby="qt-title">
+  <button type="button" class="dialog__close"><span aria-hidden="true">×</span><span class="sr-only">Fermer</span></button>
+  <div class="qt">
+    <form id="qt-form">
+      <p class="eyebrow">Devis gratuit</p>
+      <h3 id="qt-title">Demander un devis</h3>
+      <div class="bk-guide">
+        <span class="bk-guide__icon" aria-hidden="true"></span>
+        <div><strong>Choisissez vos prestations</strong><p>Cochez ce qui vous intéresse : votre devis PDF arrive par e-mail en quelques secondes.</p></div>
+      </div>
+      <fieldset class="qt-list" id="qt-list"></fieldset>
+      <p class="qt-total">Total estimé <strong id="qt-total">0 €</strong></p>
+      <label>Nom <input name="name" required maxlength="100" autocomplete="name"></label>
+      <label>E-mail <input type="email" name="email" required maxlength="150" autocomplete="email"></label>
+      <label>Téléphone (facultatif) <input type="tel" name="phone" maxlength="30" autocomplete="tel"></label>
+      <label>Message (facultatif) <textarea name="msg" rows="2" maxlength="2000"></textarea></label>
+      <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="hp">
+      <p class="form-note">Vos informations servent uniquement à établir et vous envoyer ce devis. <a href="pages/confidentialite.html">En savoir plus</a></p>
+      <p class="form-status" id="qt-status" role="status" aria-live="polite" hidden></p>
+      <button class="btn btn--lg" type="submit" id="qt-submit">Recevoir mon devis par e-mail</button>
+    </form>
+    <div class="bk-done" id="qt-done" hidden>
+      <svg class="bk-check" viewBox="0 0 52 52" width="76" height="76" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M15 27l8 8 15-17"/></svg>
+      <h4>Votre devis est prêt</h4>
+      <p class="bk-done__text" id="qt-done-text"></p>
+      <p class="bk-done__mail" id="qt-done-mail"></p>
+      <div class="bk-done__actions">
+        <button type="button" class="btn" id="qt-download">Télécharger le PDF</button>
+        <button type="button" class="btn btn--outline" data-book="" id="qt-book">Réserver un rendez-vous</button>
+      </div>
+      <button type="button" class="bk-back" id="qt-close">Fermer</button>
+    </div>
+  </div>
+</dialog>
+
 <!-- Pop-up : réservation en cours de développement -->
 <dialog id="soon" aria-labelledby="soon-title">
   <div class="soon">
-    <button type="button" class="dialog__close" aria-label="Fermer">×</button>
+    <button type="button" class="dialog__close"><span aria-hidden="true">×</span><span class="sr-only">Fermer</span></button>
     <div class="soon__petals" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <img class="soon__logo" src="assets/images/monogramme.png" alt="" width="64" height="74">
     <p class="eyebrow">Bientôt disponible</p>
@@ -239,7 +300,7 @@
 
 <!-- Réservation en ligne, synchronisée avec l'agenda -->
 <dialog id="booking" aria-labelledby="bk-title">
-  <button type="button" class="dialog__close" aria-label="Fermer">×</button>
+  <button type="button" class="dialog__close"><span aria-hidden="true">×</span><span class="sr-only">Fermer</span></button>
   <div class="bk">
     <aside class="bk__side">
       <img class="bk__logo" src="assets/images/monogramme.png" alt="" width="56" height="65">
@@ -257,9 +318,9 @@
         <p class="bk__recap-when" id="bk-recap-when"></p>
       </div>
       <ul class="bk__reassure">
-        <li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>Confirmation immédiate par e-mail</li>
-        <li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>Invitation à ajouter à votre agenda</li>
-        <li><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>Annulation ou report en ligne jusqu'à 24 h avant</li>
+        <li><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>Confirmation immédiate par e-mail</li>
+        <li><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>Invitation à ajouter à votre agenda</li>
+        <li><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>Annulation ou report en ligne jusqu'à 24 h avant</li>
       </ul>
     </aside>
 
@@ -278,11 +339,11 @@
             <strong id="bk-month"></strong>
             <button type="button" id="bk-next" aria-label="Mois suivant">›</button>
           </div>
-          <div class="cal__grid" id="bk-grid"></div>
+          <div class="cal__grid" id="bk-grid" role="group" aria-label="Jours du mois : flèches du clavier pour naviguer, Entrée pour choisir"></div>
           <ul class="cal-legend"><li><i class="l-ok"></i>Disponible</li><li><i class="l-sel"></i>Sélectionné</li><li><i class="l-off"></i>Indisponible</li></ul>
           <p class="cal__lock">Choisissez d'abord une prestation</p>
         </div>
-        <div class="slots" id="bk-slots"></div>
+        <div class="slots" id="bk-slots" role="group" aria-label="Créneaux disponibles"></div>
       </div>
 
       <form id="bk-form" hidden>
@@ -303,7 +364,7 @@
       </form>
 
       <div id="bk-done" class="bk-done" hidden>
-        <svg class="bk-check" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M15 27l8 8 15-17"/></svg>
+        <svg class="bk-check" viewBox="0 0 52 52" width="76" height="76" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M15 27l8 8 15-17"/></svg>
         <h4>Rendez-vous confirmé</h4>
         <p class="bk-done__text" id="bk-done-text"></p>
         <p class="bk-done__mail" id="bk-done-mail"></p>
@@ -314,7 +375,7 @@
         </ol>
         <div class="bk-done__actions">
           <button type="button" class="btn" id="bk-ics">Ajouter à mon agenda</button>
-          <a class="btn btn--outline" id="bk-cancel-link" href="#" target="_blank" rel="noopener">Annuler ou déplacer</a>
+          <a class="btn btn--outline" id="bk-cancel-link" href="#" target="_blank" rel="noopener">Annuler ou déplacer<span class="sr-only"> (nouvel onglet)</span></a>
         </div>
         <button type="button" class="bk-back" id="bk-close-done">Fermer</button>
       </div>
@@ -322,14 +383,7 @@
   </div>
 </dialog>
 
-<!-- Bandeau cookies -->
-<div class="cookies" id="cookies" hidden>
-  <p>Ce site utilise uniquement des cookies strictement nécessaires à son fonctionnement. Aucun cookie publicitaire ou de mesure d'audience n'est déposé sans votre consentement. <a href="pages/confidentialite.html">En savoir plus</a></p>
-  <div>
-    <button class="btn btn--small" data-cookie="yes">Tout accepter</button>
-    <button class="btn btn--small btn--outline" data-cookie="no">Tout refuser</button>
-  </div>
-</div>
+
 
 <script src="assets/js/script.js" defer></script>
 </body>

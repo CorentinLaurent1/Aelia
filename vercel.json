@@ -3,7 +3,27 @@
   "functions": {
     "server.js": {
       "maxDuration": 30,
-      "includeFiles": "{index.html,assets/**,pages/**,config/**}"
+      "includeFiles": "{index.html,pages/**,config/**,public/**}"
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/assets/images/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(css|js)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ]
 }

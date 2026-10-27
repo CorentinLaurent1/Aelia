@@ -45,5 +45,6 @@
     ],
     "7": []
   },
-  "closedDates": []
+  "closedDates": [],
+  "quoteValidityDays": 30
 }

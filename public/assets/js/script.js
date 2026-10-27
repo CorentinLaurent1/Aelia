@@ -10,6 +10,13 @@ toggle.addEventListener("click", () => {
   toggle.setAttribute("aria-expanded", open);
 });
 links.addEventListener("click", () => links.classList.remove("open"));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && links.classList.contains("open")) {
+    links.classList.remove("open");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.focus();
+  }
+});
 
 // ---------- Pop-up « bientôt » (affichée tant que l'agenda n'est pas relié) ----------
 const soon = document.getElementById("soon");
@@ -38,15 +45,22 @@ const longFmt = new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, weekday: "long"
 const monthFmt = new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", month: "long", year: "numeric" });
 const dayFmt = new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" });
 
-async function loadServices() {
-  if (state.services) return state.services;
+let servicesData;
+async function fetchServices() {
+  if (servicesData) return servicesData;
   const res = await fetch("/api/services", { headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error(res.status);
-  const data = await res.json();
+  servicesData = await res.json();
+  return servicesData;
+}
+
+async function loadServices() {
+  if (state.services) return state.services;
+  const data = await fetchServices();
   if (!data.bookingEnabled) throw new Error("disabled");
-  state.services = data.services;
+  state.services = data.services.filter((s) => !s.quoteOnly);
   el.service.innerHTML = '<option value="">Choisir une prestation…</option>' +
-    data.services.map((s) => `<option value="${s.id}">${s.name} · ${s.price}</option>`).join("");
+    state.services.map((s) => `<option value="${s.id}">${s.name} · ${s.price}</option>`).join("");
   return state.services;
 }
 
@@ -131,7 +145,8 @@ function renderGrid() {
   for (let d = 1; d <= last; d++) {
     const key = keyOf(y, m, d);
     const ok = Boolean(state.slots[key]);
-    html += `<button type="button" class="cal-day${ok ? " ok" : ""}${key === state.day ? " sel" : ""}" data-day="${key}" ${ok ? "" : "disabled"}>${d}</button>`;
+    const full = dayFmt.format(new Date(key + "T12:00:00Z"));
+    html += `<button type="button" class="cal-day${ok ? " ok" : ""}${key === state.day ? " sel" : ""}" data-day="${key}" aria-label="${full}${ok ? "" : ", indisponible"}" aria-pressed="${key === state.day}" ${ok ? "" : "disabled"}>${d}</button>`;
   }
   el.grid.innerHTML = html;
   const now = new Date();
@@ -191,6 +206,22 @@ el.grid.addEventListener("click", (e) => {
   state.day = b.dataset.day;
   renderGrid();
   renderSlots();
+  // le clavier arrive directement sur le premier créneau du jour choisi
+  el.slots.querySelector(".slot")?.focus();
+});
+
+// Navigation au clavier dans le calendrier : flèches (jours disponibles uniquement)
+el.grid.addEventListener("keydown", (e) => {
+  const steps = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 7, ArrowUp: -7 };
+  if (!(e.key in steps) || !e.target.matches("[data-day]")) return;
+  const days = [...el.grid.querySelectorAll(".cal-day.ok")];
+  const i = days.indexOf(e.target);
+  const dir = Math.sign(steps[e.key]);
+  const cur = new Date(e.target.dataset.day + "T12:00:00Z").getTime();
+  const wanted = cur + steps[e.key] * 864e5;
+  let target = days.find((d) => new Date(d.dataset.day + "T12:00:00Z").getTime() === wanted);
+  if (!target) target = days[i + dir];
+  if (target) { e.preventDefault(); target.focus(); }
 });
 
 el.slots.addEventListener("click", (e) => {
@@ -266,6 +297,104 @@ el.ics.addEventListener("click", () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
+// ---------- Demande de devis (PDF envoyé par e-mail) ----------
+const qd = $("quote");
+const qt = { form: $("qt-form"), list: $("qt-list"), total: $("qt-total"), status: $("qt-status"), submit: $("qt-submit"), done: $("qt-done"), pdf: null, ref: "" };
+const euro = (n) => `${n.toLocaleString("fr-FR")} €`;
+
+qd.querySelector(".dialog__close").addEventListener("click", () => qd.close());
+$("qt-close").addEventListener("click", () => qd.close());
+qd.addEventListener("click", (e) => { if (e.target === qd) qd.close(); });
+
+function qtUpdateTotal() {
+  const sum = [...qt.list.querySelectorAll("input[type=checkbox]:checked")].reduce((s, i) => {
+    const qty = i.closest(".qt-item").querySelector(".qt-qty");
+    return s + Number(i.dataset.amount) * (qty ? Math.max(1, Math.min(20, Number(qty.value) || 1)) : 1);
+  }, 0);
+  qt.total.textContent = euro(sum);
+}
+
+async function openQuote(preselect) {
+  let data;
+  try { data = await fetchServices(); } catch { soon.showModal(); return; }
+  const row = (s) => `<label class="qt-item"><input type="checkbox" name="item" value="${s.id}" data-amount="${s.amount}"><span class="qt-item__name">${s.name}<small>${s.minutes ? durationLabel(s.minutes) : "par pièce"}</small></span>${s.category === "retouche" ? '<input class="qt-qty" type="number" min="1" max="20" value="1" aria-label="Quantité">' : ""}<span class="qt-item__price">${s.price}</span></label>`;
+  const main = data.services.filter((s) => s.category !== "retouche");
+  const fix = data.services.filter((s) => s.category === "retouche");
+  qt.list.innerHTML = main.map(row).join("") + (fix.length ? `<p class="qt-sep">Retouches de vêtements</p>${fix.map(row).join("")}` : "");
+  const pre = data.services.find((s) => s.name === preselect);
+  if (pre) qt.list.querySelector(`input[value="${pre.id}"]`).checked = true;
+  qtUpdateTotal();
+  qt.form.hidden = false;
+  qt.done.hidden = true;
+  qt.status.hidden = true;
+  qd.showModal();
+}
+
+document.querySelectorAll("[data-quote]").forEach((a) =>
+  a.addEventListener("click", (e) => { e.preventDefault(); openQuote(a.dataset.quote); })
+);
+qt.list.addEventListener("change", qtUpdateTotal);
+qt.list.addEventListener("input", qtUpdateTotal);
+
+qt.form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const items = [...qt.list.querySelectorAll("input[type=checkbox]:checked")].map((i) => {
+    const qty = i.closest(".qt-item").querySelector(".qt-qty");
+    return { id: i.value, qty: qty ? Number(qty.value) || 1 : 1 };
+  });
+  if (!items.length) {
+    qt.status.textContent = "Cochez au moins une prestation pour établir votre devis.";
+    qt.status.className = "form-status form-status--error";
+    qt.status.hidden = false;
+    return;
+  }
+  qt.status.hidden = true;
+  qt.submit.disabled = true;
+  qt.submit.textContent = "Création du devis…";
+  const d = Object.fromEntries(new FormData(qt.form));
+  delete d.item;
+  delete d.undefined;
+  try {
+    const res = await fetch("/api/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ ...d, items }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || res.status);
+    qt.pdf = data.pdf;
+    qt.ref = data.ref;
+    $("qt-done-text").innerHTML = `<b>${data.ref}</b><br>${euro(data.total)}`;
+    const mail = $("qt-done-mail");
+    mail.textContent = data.emailSent
+      ? `Votre devis vient d'être envoyé à ${d.email} (pensez à vérifier vos courriers indésirables).`
+      : "Le devis est prêt mais l'e-mail n'a pas pu être envoyé : téléchargez-le ci-dessous.";
+    mail.classList.toggle("warn", !data.emailSent);
+    qt.form.reset();
+    qt.form.hidden = true;
+    qt.done.hidden = false;
+  } catch (err) {
+    qt.status.textContent = `La création du devis a échoué. Réessayez ou écrivez-moi à ${CONTACT_EMAIL}.`;
+    qt.status.className = "form-status form-status--error";
+    qt.status.hidden = false;
+  } finally {
+    qt.submit.disabled = false;
+    qt.submit.textContent = "Recevoir mon devis par e-mail";
+  }
+});
+
+$("qt-download").addEventListener("click", () => {
+  if (!qt.pdf) return;
+  const bytes = Uint8Array.from(atob(qt.pdf), (c) => c.charCodeAt(0));
+  const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: `${qt.ref}.pdf` });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+$("qt-book").addEventListener("click", (e) => { e.preventDefault(); qd.close(); openBooking(""); });
+
 // Bandeau cookies
 const banner = document.getElementById("cookies");
 const KEY = "aelia-cookies";
@@ -293,7 +422,7 @@ document.getElementById("manage-cookies").addEventListener("click", (e) => {
 // Ombre de la barre de navigation au défilement
 const nav = document.querySelector(".nav");
 const onScroll = () => nav.classList.toggle("scrolled", window.scrollY > 10);
-onScroll();
+requestAnimationFrame(onScroll);
 window.addEventListener("scroll", onScroll, { passive: true });
 
 // Apparition des éléments au défilement

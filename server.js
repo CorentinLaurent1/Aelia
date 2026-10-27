@@ -6,6 +6,7 @@ const calendar = require("./lib/calendar");
 const { computeSlots } = require("./lib/slots");
 const { createToken, readToken } = require("./lib/token");
 const { layout, esc: escMail } = require("./lib/email-template");
+const { buildQuotePdf, eur, duration: quoteDuration, dateFr } = require("./lib/quote");
 const services = require("./config/services.json");
 const cfg = require("./config/availability.json");
 
@@ -27,13 +28,20 @@ app.use((_req, res, next) => {
 app.use(express.json({ limit: "20kb" }));
 
 // Seuls les dossiers publics sont servis (jamais server.js, package.json, .env…)
-app.use("/assets", express.static(path.join(__dirname, "assets"), { maxAge: "7d" }));
+// CSS et JS : toujours revalidés (un navigateur ne garde jamais une ancienne version avec une nouvelle page) ;
+// images : cache d'une semaine.
+app.use("/assets", express.static(path.join(__dirname, "public", "assets"), {
+  setHeaders: (res, file) => {
+    res.setHeader("Cache-Control", /\.(css|js)$/.test(file) ? "no-cache" : "public, max-age=604800");
+  },
+}));
 app.use("/pages", express.static(path.join(__dirname, "pages")));
 const siteUrl = (req) => (process.env.SITE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
 const fs = require("fs");
 let indexHtml;
 app.get("/", (req, res) => {
   indexHtml = indexHtml || fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
+  res.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=86400");
   res.type("html").send(indexHtml.replace(/__SITE_URL__/g, siteUrl(req)));
 });
 // Anciens liens vers index.html : retour à l'accueil
@@ -45,7 +53,7 @@ app.get("/robots.txt", (req, res) => {
 });
 app.get("/sitemap.xml", (req, res) => {
   const u = siteUrl(req);
-  const urls = ["/", "/pages/mentions-legales.html", "/pages/confidentialite.html", "/pages/cgv.html"];
+  const urls = ["/", "/pages/mentions-legales.html", "/pages/confidentialite.html", "/pages/cgv.html", "/pages/accessibilite.html"];
   res.type("application/xml").send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((p) => `  <url><loc>${u}${p}</loc></url>`).join("\n")}\n</urlset>\n`);
 });
 
@@ -153,6 +161,7 @@ app.get("/api/availability", async (req, res) => {
   if (!calendar.configured()) return res.status(503).json({ error: "not_configured" });
   const svc = serviceById(req.query.service);
   const { from, to } = req.query;
+  if (svc && svc.quoteOnly) return res.status(400).json({ error: "Prestation sur devis uniquement." });
   if (!svc || !DAY_RE.test(from || "") || !DAY_RE.test(to || "")) return res.status(400).json({ error: "Paramètres invalides." });
   if (DateTime.fromISO(to).diff(DateTime.fromISO(from), "days").days > 62) return res.status(400).json({ error: "Période trop longue." });
   try {
@@ -185,7 +194,7 @@ async function handleBooking(req, res) {
   const d = { name: clean(name, 100), email: clean(email, 150), phone: clean(phone, 30), msg: clean(msg, 2000) };
   const svc = serviceById(service);
   const startDt = DateTime.fromISO(String(start || ""), { setZone: true });
-  if (!svc || !startDt.isValid || !d.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) {
+  if (!svc || svc.quoteOnly || !startDt.isValid || !d.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) {
     return res.status(400).json({ error: "Formulaire incomplet ou invalide." });
   }
 
@@ -273,6 +282,76 @@ async function handleBooking(req, res) {
   await flushMail();
   res.json({ ok: true, service: svc.name, when, duration, emailSent, cancelUrl, ics: event.ics });
 }
+
+// ---------- Devis : PDF généré et envoyé par e-mail ----------
+app.post("/api/quote", async (req, res) => {
+  const { items, name, email, phone, msg, website } = req.body || {};
+  if (website) return res.json({ ok: true });
+  if (tooMany(req.ip)) return res.status(429).json({ error: "Trop de demandes, réessayez plus tard." });
+  const clean = (v, max) => String(v || "").trim().slice(0, max);
+  const c = { name: clean(name, 100), email: clean(email, 150), phone: clean(phone, 30) };
+  const wanted = new Map();
+  for (const it of Array.isArray(items) ? items.slice(0, 20) : []) {
+    const id = String(typeof it === "object" && it ? it.id : it);
+    const svc = serviceById(id);
+    if (!svc) { wanted.clear(); break; }
+    const qty = svc.category === "retouche" ? Math.min(20, Math.max(1, parseInt(it.qty, 10) || 1)) : 1;
+    wanted.set(id, qty);
+  }
+  const lines = [...wanted].map(([id, qty]) => ({ ...serviceById(id), qty }));
+  if (!lines.length || !c.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)) {
+    return res.status(400).json({ error: "Formulaire incomplet ou invalide." });
+  }
+  const note = clean(msg, 2000);
+  const base = (process.env.SITE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+  const now = new Date();
+  const ref = `DEV-${now.toISOString().slice(0, 10).replace(/-/g, "")}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+  const validUntil = new Date(now.getTime() + cfg.quoteValidityDays * 864e5);
+  let pdf;
+  try {
+    pdf = await buildQuotePdf({
+      ref, date: now, validUntil, validityDays: cfg.quoteValidityDays, client: c, siteUrl: base.replace(/^https?:\/\//, ""),
+      items: lines.map((s) => ({ name: s.name, minutes: s.minutes, unit: s.amount, qty: s.qty, amount: s.amount * s.qty })),
+    });
+  } catch (e) {
+    console.error("Génération du devis :", e.message);
+    return res.status(500).json({ error: "Le devis n'a pas pu être généré." });
+  }
+  const total = lines.reduce((s, l) => s + l.amount * l.qty, 0);
+  const attachments = [{ filename: `${ref}.pdf`, content: pdf, contentType: "application/pdf" }];
+  let emailSent = false;
+  if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+    const from = MAIL_FROM || SMTP_USER;
+    const t = getTransporter();
+    const rows = [["Devis", escMail(ref)], ["Prestations", lines.map((l) => escMail(l.name) + (l.qty > 1 ? ` × ${l.qty}` : "")).join("<br>")], ["Total", `<b>${escMail(eur(total))}</b> · TVA non applicable`], ["Valable jusqu'au", escMail(dateFr(validUntil))]];
+    if (MAIL_TO) t.sendMail({
+      from, to: MAIL_TO, replyTo: `"${c.name.replace(/"/g, "")}" <${c.email}>`,
+      subject: `Demande de devis ${ref} · ${c.name}`,
+      text: `${c.name} (${c.email}, ${c.phone || "sans téléphone"}) a demandé un devis de ${eur(total)}.\n${lines.map((l) => "- " + l.name + (l.qty > 1 ? " x" + l.qty : "")).join("\n")}\n\n${note}`,
+      html: layout({
+        base, preheader: `${c.name} · ${eur(total)}`, title: "Nouvelle demande de devis",
+        intro: `<p style="margin:0">${escMail(c.name)} vient de demander un devis. Il lui a été envoyé automatiquement, et vous en trouvez une copie en pièce jointe.</p>`,
+        rows: [...rows, ["E-mail", escMail(c.email)], ["Téléphone", escMail(c.phone || "-")], ["Message", escMail(note || "-").replace(/\n/g, "<br>")]],
+      }),
+      attachments,
+    }).catch((e) => console.error("Notification de devis non envoyée :", e.message));
+    await t.sendMail({
+      from, to: c.email, replyTo: MAIL_TO || from,
+      subject: `Votre devis Aélia · ${ref}`,
+      text: `Bonjour ${c.name},\n\nVous trouverez votre devis (${eur(total)}) en pièce jointe, valable jusqu'au ${dateFr(validUntil)}.\n\nPour le valider, réservez votre créneau sur ${base} ou répondez simplement à cet e-mail.\n\nÀ bientôt,\nLaësia · Aélia`,
+      html: layout({
+        base, preheader: `Votre devis ${ref} : ${eur(total)}`, title: "Votre devis est prêt",
+        intro: `<p style="margin:0">Bonjour ${escMail(c.name)},<br>merci de l'intérêt que vous portez à Aélia. Vous trouverez votre devis en pièce jointe (PDF).</p>`,
+        rows,
+        outro: `<p style="margin:0">Pour le valider, il vous suffit de réserver votre créneau en ligne, ou de répondre à cet e-mail pour toute question.</p>`,
+        button: { url: base + "/#prestations", label: "Réserver mon rendez-vous" },
+      }),
+      attachments,
+    }).then(() => { emailSent = true; }).catch((e) => console.error("Devis non envoyé :", e.message));
+  }
+  await flushMail();
+  res.json({ ok: true, ref, total, emailSent, pdf: pdf.toString("base64") });
+});
 
 // ---------- Gestion d'un rendez-vous par la cliente (lien signé reçu par e-mail) ----------
 app.get("/rendez-vous/annuler", (_req, res) => res.sendFile(path.join(__dirname, "pages", "annulation.html")));
