@@ -297,104 +297,118 @@ el.ics.addEventListener("click", () => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
-// ---------- Demande de devis (PDF envoyé par e-mail) ----------
+// ---------- Demande de devis : description + photos ----------
 const qd = $("quote");
-const qt = { form: $("qt-form"), list: $("qt-list"), total: $("qt-total"), status: $("qt-status"), submit: $("qt-submit"), done: $("qt-done"), pdf: null, ref: "" };
-const euro = (n) => `${n.toLocaleString("fr-FR")} €`;
+const qt = { form: $("qt-form"), type: $("qt-type"), file: $("qt-file"), thumbs: $("qt-thumbs"), count: $("qt-count"), photoErr: $("qt-photos-error"), status: $("qt-status"), submit: $("qt-submit"), done: $("qt-done"), photos: [] };
+const MAX_PHOTOS = 5;
+const MAX_TOTAL = 3.8 * 1024 * 1024; // la requête reste sous la limite de 4,5 Mo de l'hébergeur
 
 qd.querySelector(".dialog__close").addEventListener("click", () => qd.close());
 $("qt-close").addEventListener("click", () => qd.close());
 qd.addEventListener("click", (e) => { if (e.target === qd) qd.close(); });
 
-function qtUpdateTotal() {
-  const sum = [...qt.list.querySelectorAll("input[type=checkbox]:checked")].reduce((s, i) => {
-    const qty = i.closest(".qt-item").querySelector(".qt-qty");
-    return s + Number(i.dataset.amount) * (qty ? Math.max(1, Math.min(20, Number(qty.value) || 1)) : 1);
-  }, 0);
-  qt.total.textContent = euro(sum);
-}
-
-async function openQuote(preselect) {
-  let data;
-  try { data = await fetchServices(); } catch { soon.showModal(); return; }
-  const row = (s) => `<label class="qt-item"><input type="checkbox" name="item" value="${s.id}" data-amount="${s.amount}"><span class="qt-item__name">${s.name}<small>${s.minutes ? durationLabel(s.minutes) : "par pièce · délai " + (s.delay || "à convenir")}</small></span>${s.category === "retouche" ? '<input class="qt-qty" type="number" min="1" max="20" value="1" aria-label="Quantité">' : ""}<span class="qt-item__price">${s.price}</span></label>`;
-  const main = data.services.filter((s) => s.category !== "retouche");
-  const fix = data.services.filter((s) => s.category === "retouche");
-  qt.list.innerHTML = main.map(row).join("") + (fix.length ? `<p class="qt-sep">Retouches de vêtements</p>${fix.map(row).join("")}` : "");
-  const pre = data.services.find((s) => s.name === preselect);
-  if (pre) qt.list.querySelector(`input[value="${pre.id}"]`).checked = true;
-  qtUpdateTotal();
+function openQuote(type) {
+  qt.form.reset();
+  qt.photos = [];
+  renderPhotos();
+  if (type && [...qt.type.options].some((o) => o.value === type)) qt.type.value = type;
   qt.form.hidden = false;
   qt.done.hidden = true;
   qt.status.hidden = true;
+  qt.photoErr.hidden = true;
   qd.showModal();
 }
-
 document.querySelectorAll("[data-quote]").forEach((a) =>
   a.addEventListener("click", (e) => { e.preventDefault(); openQuote(a.dataset.quote); })
 );
-qt.list.addEventListener("change", qtUpdateTotal);
-qt.list.addEventListener("input", qtUpdateTotal);
+
+function photoError(msg) { qt.photoErr.textContent = msg; qt.photoErr.hidden = !msg; }
+
+// Réduit la photo (1600 px max, JPEG) pour un envoi rapide et léger
+async function shrink(file) {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(bmp.width * scale);
+  c.height = Math.round(bmp.height * scale);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  bmp.close?.();
+  let blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.82));
+  if (blob && blob.size > 900 * 1024) blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.65));
+  return blob;
+}
+
+function renderPhotos() {
+  qt.count.textContent = `${qt.photos.length} / ${MAX_PHOTOS}`;
+  qt.thumbs.innerHTML = "";
+  qt.photos.forEach((p, i) => {
+    const li = document.createElement("li");
+    const img = Object.assign(document.createElement("img"), { src: p.url, alt: `Photo ${i + 1} : ${p.name}` });
+    const btn = Object.assign(document.createElement("button"), { type: "button", className: "qt-thumb__rm" });
+    btn.innerHTML = `<span aria-hidden="true">×</span><span class="sr-only">Retirer la photo ${i + 1}</span>`;
+    btn.addEventListener("click", () => {
+      URL.revokeObjectURL(p.url);
+      qt.photos.splice(i, 1);
+      renderPhotos();
+      qt.file.focus();
+    });
+    li.append(img, btn);
+    qt.thumbs.append(li);
+  });
+}
+
+qt.file.addEventListener("change", async () => {
+  photoError("");
+  const files = [...qt.file.files];
+  qt.file.value = "";
+  for (const f of files) {
+    if (qt.photos.length >= MAX_PHOTOS) { photoError(`Vous pouvez ajouter ${MAX_PHOTOS} photos au maximum.`); break; }
+    try {
+      const blob = await shrink(f);
+      if (!blob) throw new Error("vide");
+      const total = qt.photos.reduce((s, p) => s + p.blob.size, 0) + blob.size;
+      if (total > MAX_TOTAL) { photoError("Les photos sont trop lourdes au total : retirez-en une ou choisissez-en de plus petites."); break; }
+      qt.photos.push({ blob, name: f.name.replace(/\.[^.]+$/, "") + ".jpg", url: URL.createObjectURL(blob) });
+    } catch {
+      photoError(`« ${f.name} » n'a pas pu être lue : utilisez une photo JPEG, PNG ou WebP.`);
+    }
+  }
+  renderPhotos();
+});
 
 qt.form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const items = [...qt.list.querySelectorAll("input[type=checkbox]:checked")].map((i) => {
-    const qty = i.closest(".qt-item").querySelector(".qt-qty");
-    return { id: i.value, qty: qty ? Number(qty.value) || 1 : 1 };
-  });
-  if (!items.length) {
-    qt.status.textContent = "Cochez au moins une prestation pour établir votre devis.";
-    qt.status.className = "form-status form-status--error";
-    qt.status.hidden = false;
-    return;
-  }
   qt.status.hidden = true;
   qt.submit.disabled = true;
-  qt.submit.textContent = "Création du devis…";
-  const d = Object.fromEntries(new FormData(qt.form));
-  delete d.item;
-  delete d.undefined;
+  qt.submit.textContent = "Envoi en cours…";
+  const fd = new FormData(qt.form);
+  qt.photos.forEach((p) => fd.append("photos", p.blob, p.name));
   try {
-    const res = await fetch("/api/quote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ ...d, items }),
-    });
+    const res = await fetch("/api/quote", { method: "POST", headers: { Accept: "application/json" }, body: fd });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || res.status);
-    qt.pdf = data.pdf;
-    $("qt-book").hidden = data.onlyRetouche;
-    qt.ref = data.ref;
-    $("qt-done-text").innerHTML = `<b>${data.ref}</b><br>${euro(data.total)}`;
+    const retouche = qt.type.value === "retouche";
+    $("qt-done-text").textContent = "Merci ! J'étudie votre demande et je reviens vers vous très vite avec un devis.";
     const mail = $("qt-done-mail");
-    mail.textContent = data.emailSent
-      ? `Votre devis vient d'être envoyé à ${d.email} (pensez à vérifier vos courriers indésirables).`
-      : "Le devis est prêt mais l'e-mail n'a pas pu être envoyé : téléchargez-le ci-dessous.";
-    mail.classList.toggle("warn", !data.emailSent);
-    qt.form.reset();
+    mail.hidden = !retouche && data.ackSent;
+    mail.classList.remove("warn");
+    mail.textContent = retouche
+      ? "Pour les retouches, comptez environ une semaine de réalisation après validation du devis." + (data.ackSent ? " Un accusé de réception vient de vous être envoyé." : "")
+      : "";
+    qt.photos.forEach((p) => URL.revokeObjectURL(p.url));
+    qt.photos = [];
     qt.form.hidden = true;
     qt.done.hidden = false;
+    $("qt-done-title").focus();
   } catch (err) {
-    qt.status.textContent = `La création du devis a échoué. Réessayez ou écrivez-moi à ${CONTACT_EMAIL}.`;
+    qt.status.textContent = `L'envoi a échoué. Réessayez ou écrivez-moi à ${CONTACT_EMAIL}.`;
     qt.status.className = "form-status form-status--error";
     qt.status.hidden = false;
   } finally {
     qt.submit.disabled = false;
-    qt.submit.textContent = "Recevoir mon devis par e-mail";
+    qt.submit.textContent = "Envoyer ma demande";
   }
 });
-
-$("qt-download").addEventListener("click", () => {
-  if (!qt.pdf) return;
-  const bytes = Uint8Array.from(atob(qt.pdf), (c) => c.charCodeAt(0));
-  const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-  const a = Object.assign(document.createElement("a"), { href: url, download: `${qt.ref}.pdf` });
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-});
-$("qt-book").addEventListener("click", (e) => { e.preventDefault(); qd.close(); openBooking(""); });
 
 // Bandeau cookies
 const banner = document.getElementById("cookies");

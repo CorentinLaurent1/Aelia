@@ -68,15 +68,5 @@
     "minutes": 360,
     "price": "360 €",
     "amount": 360
-  },
-  {
-    "id": "retouche-ourlet",
-    "name": "Ourlet simple",
-    "minutes": 0,
-    "price": "12 €",
-    "amount": 12,
-    "category": "retouche",
-    "quoteOnly": true,
-    "delay": "1 semaine"
   }
 ]

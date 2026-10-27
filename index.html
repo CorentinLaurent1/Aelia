@@ -139,9 +139,9 @@
       <div class="grid grid--1">
         <article class="card card--wide">
         <header><h4>Retouches de vêtements</h4><p class="meta">l'ourlet simple · <strong>12 €</strong></p></header>
-        <p>Je raccourcis vos pantalons, jupes et robes avec un ourlet simple pour qu'ils tombent parfaitement. Le prix est par pièce, et vous recevez votre devis par e-mail en quelques secondes. Pas de rendez-vous à prendre : je vous indique par e-mail comment me remettre vos vêtements.</p>
+        <p>Je raccourcis vos pantalons, jupes et robes avec un ourlet simple pour qu'ils tombent parfaitement. Le prix est par pièce. Envoyez-moi une description et des photos, je vous réponds avec un devis. Pas de rendez-vous à prendre : je vous indique par e-mail comment me remettre vos vêtements.</p>
         <p class="delay"><strong>Délai de réalisation</strong> environ 1 semaine</p>
-        <button type="button" class="card__link" data-quote>Demander un devis<span class="sr-only"> de retouche (ourlet simple)</span> →</button>
+        <button type="button" class="card__link" data-quote="retouche">Demander un devis<span class="sr-only"> de retouche (ourlet simple)</span> →</button>
       </article>
       </div>
     </div>
@@ -223,7 +223,7 @@
 
   <section class="section section--alt cta">
     <h2>Prête à révéler <em>votre</em> style ?</h2>
-    <p>Choisissez votre prestation et votre créneau en ligne, ou demandez un devis gratuit : je vous l'envoie par e-mail en quelques secondes.</p>
+    <p>Choisissez votre prestation et votre créneau en ligne, ou demandez un devis gratuit en décrivant votre besoin (photos possibles).</p>
     <div class="hero__cta">
       <button type="button" class="btn btn--lg" data-book="">Prendre rendez-vous</button>
       <button type="button" class="btn btn--outline btn--lg" data-quote>Demander un devis</button>
@@ -248,7 +248,7 @@
   </div>
 </footer>
 
-<!-- Demande de devis (PDF envoyé par e-mail) -->
+<!-- Demande de devis : description et photos -->
 <dialog id="quote" aria-labelledby="qt-title">
   <button type="button" class="dialog__close"><span aria-hidden="true">×</span><span class="sr-only">Fermer</span></button>
   <div class="qt">
@@ -257,29 +257,41 @@
       <h3 id="qt-title">Demander un devis</h3>
       <div class="bk-guide">
         <span class="bk-guide__icon" aria-hidden="true"></span>
-        <div><strong>Choisissez vos prestations</strong><p>Cochez ce qui vous intéresse : votre devis PDF arrive par e-mail en quelques secondes.</p></div>
+        <div><strong>Décrivez votre besoin</strong><p>Plus votre demande est précise, plus mon devis l'est aussi. Ajoutez des photos si elles peuvent m'aider : vêtement à retoucher, tenue, dressing…</p></div>
       </div>
-      <fieldset class="qt-list" id="qt-list"></fieldset>
-      <p class="qt-total">Total estimé <strong id="qt-total">0 €</strong></p>
+      <label>Type de demande
+        <select name="type" id="qt-type" required>
+          <option value="">Choisir…</option>
+          <option value="retouche">Retouches de vêtements (ourlet simple)</option>
+          <option value="style">Une prestation de conseil en style et en image</option>
+          <option value="autre">Autre demande</option>
+        </select>
+      </label>
+      <label>Votre demande
+        <textarea name="msg" id="qt-msg" required rows="5" maxlength="3000" placeholder="Ex. : j'aimerais raccourcir deux pantalons et une jupe. Voici des photos des vêtements…"></textarea>
+      </label>
+      <div class="qt-photos">
+        <p class="qt-photos__title" id="qt-photos-title">Photos (facultatif) <span id="qt-count" aria-live="polite">0 / 5</span></p>
+        <input type="file" id="qt-file" class="sr-only" accept="image/*" multiple aria-describedby="qt-photos-help">
+        <label for="qt-file" class="btn btn--outline btn--small qt-photos__btn">Ajouter des photos</label>
+        <ul class="qt-thumbs" id="qt-thumbs" aria-labelledby="qt-photos-title"></ul>
+        <p class="form-note" id="qt-photos-help">5 photos maximum. Elles sont réduites automatiquement avant l'envoi.</p>
+        <p class="form-status form-status--error" id="qt-photos-error" role="alert" hidden></p>
+      </div>
       <label>Nom <input name="name" required maxlength="100" autocomplete="name"></label>
       <label>E-mail <input type="email" name="email" required maxlength="150" autocomplete="email"></label>
       <label>Téléphone (facultatif) <input type="tel" name="phone" maxlength="30" autocomplete="tel"></label>
-      <label>Message (facultatif) <textarea name="msg" rows="2" maxlength="2000"></textarea></label>
       <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="hp">
-      <p class="form-note">Vos informations servent uniquement à établir et vous envoyer ce devis. <a href="pages/confidentialite.html">En savoir plus</a></p>
+      <p class="form-note">Vos informations et vos photos servent uniquement à établir votre devis. <a href="pages/confidentialite.html">En savoir plus</a></p>
       <p class="form-status" id="qt-status" role="status" aria-live="polite" hidden></p>
-      <button class="btn btn--lg" type="submit" id="qt-submit">Recevoir mon devis par e-mail</button>
+      <button class="btn btn--lg" type="submit" id="qt-submit">Envoyer ma demande</button>
     </form>
     <div class="bk-done" id="qt-done" hidden>
       <svg class="bk-check" viewBox="0 0 52 52" width="76" height="76" aria-hidden="true"><circle cx="26" cy="26" r="24"/><path d="M15 27l8 8 15-17"/></svg>
-      <h4>Votre devis est prêt</h4>
+      <h4 tabindex="-1" id="qt-done-title">Demande envoyée</h4>
       <p class="bk-done__text" id="qt-done-text"></p>
       <p class="bk-done__mail" id="qt-done-mail"></p>
-      <div class="bk-done__actions">
-        <button type="button" class="btn" id="qt-download">Télécharger le PDF</button>
-        <button type="button" class="btn btn--outline" data-book="" id="qt-book">Réserver un rendez-vous</button>
-      </div>
-      <button type="button" class="bk-back" id="qt-close">Fermer</button>
+      <button type="button" class="btn" id="qt-close">Fermer</button>
     </div>
   </div>
 </dialog>

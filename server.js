@@ -6,7 +6,7 @@ const calendar = require("./lib/calendar");
 const { computeSlots } = require("./lib/slots");
 const { createToken, readToken } = require("./lib/token");
 const { layout, esc: escMail } = require("./lib/email-template");
-const { buildQuotePdf, eur, duration: quoteDuration, dateFr } = require("./lib/quote");
+const multer = require("multer");
 const services = require("./config/services.json");
 const cfg = require("./config/availability.json");
 
@@ -303,78 +303,79 @@ async function handleBooking(req, res) {
   res.json({ ok: true, service: svc.name, when, duration, emailSent, cancelUrl, ics: event.ics });
 }
 
-// ---------- Devis : PDF généré et envoyé par e-mail ----------
-app.post("/api/quote", async (req, res) => {
-  const { items, name, email, phone, msg, website } = req.body || {};
+// ---------- Demande de devis : description + photos, envoyées par e-mail ----------
+const upload = multer({ storage: multer.memoryStorage(), limits: { files: 5, fileSize: 2.5 * 1024 * 1024, fields: 12, fieldSize: 6000 } });
+const QUOTE_TYPES = { retouche: "Retouches de vêtements (ourlet simple)", style: "Prestation de conseil en style et en image", autre: "Autre demande" };
+
+// Type réel du fichier d'après ses premiers octets (on ne se fie pas à l'extension)
+function imageKind(buf) {
+  if (buf.length > 12 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return { ext: "jpg", type: "image/jpeg" };
+  if (buf.length > 8 && buf.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return { ext: "png", type: "image/png" };
+  if (buf.length > 12 && buf.slice(0, 4).toString() === "RIFF" && buf.slice(8, 12).toString() === "WEBP") return { ext: "webp", type: "image/webp" };
+  return null;
+}
+
+app.post("/api/quote", (req, res, next) => {
+  upload.array("photos", 5)(req, res, (err) => {
+    if (err) return res.status(400).json({ error: "Photos refusées : 5 maximum, 2,5 Mo chacune." });
+    next();
+  });
+}, async (req, res) => {
+  const { type, name, email, phone, msg, website } = req.body || {};
   if (website) return res.json({ ok: true });
   if (tooMany(req.ip)) return res.status(429).json({ error: "Trop de demandes, réessayez plus tard." });
   const clean = (v, max) => String(v || "").trim().slice(0, max);
-  const c = { name: clean(name, 100), email: clean(email, 150), phone: clean(phone, 30) };
-  const wanted = new Map();
-  for (const it of Array.isArray(items) ? items.slice(0, 20) : []) {
-    const id = String(typeof it === "object" && it ? it.id : it);
-    const svc = serviceById(id);
-    if (!svc) { wanted.clear(); break; }
-    const qty = svc.category === "retouche" ? Math.min(20, Math.max(1, parseInt(it.qty, 10) || 1)) : 1;
-    wanted.set(id, qty);
-  }
-  const lines = [...wanted].map(([id, qty]) => ({ ...serviceById(id), qty }));
-  if (!lines.length || !c.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)) {
+  const c = { name: clean(name, 100), email: clean(email, 150), phone: clean(phone, 30), msg: clean(msg, 3000), type: QUOTE_TYPES[type] ? type : "" };
+  if (!c.type || !c.msg || !c.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)) {
     return res.status(400).json({ error: "Formulaire incomplet ou invalide." });
   }
-  const note = clean(msg, 2000);
+  const photos = [];
+  for (const [i, f] of (req.files || []).entries()) {
+    const kind = imageKind(f.buffer);
+    if (!kind) return res.status(400).json({ error: "Seules les photos JPEG, PNG ou WebP sont acceptées." });
+    photos.push({ filename: `photo-${i + 1}.${kind.ext}`, content: f.buffer, contentType: kind.type });
+  }
+  if (!(SMTP_HOST && SMTP_USER && SMTP_PASS && MAIL_TO)) {
+    console.error("Variables SMTP manquantes");
+    return res.status(500).json({ error: "Service d'envoi non configuré." });
+  }
+
   const base = (process.env.SITE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
-  const now = new Date();
-  const ref = `DEV-${now.toISOString().slice(0, 10).replace(/-/g, "")}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-  const validUntil = new Date(now.getTime() + cfg.quoteValidityDays * 864e5);
-  let pdf;
+  const from = MAIL_FROM || SMTP_USER;
+  const t = getTransporter();
+  const typeLabel = QUOTE_TYPES[c.type];
+  const delay = c.type === "retouche" ? [["Délai de réalisation", "environ 1 semaine après validation du devis"]] : [];
   try {
-    pdf = await buildQuotePdf({
-      ref, date: now, validUntil, validityDays: cfg.quoteValidityDays, client: c, siteUrl: base.replace(/^https?:\/\//, ""),
-      items: lines.map((s) => ({ name: s.name, minutes: s.minutes, delay: s.delay, unit: s.amount, qty: s.qty, amount: s.amount * s.qty })),
+    // Pour vous : la demande complète avec les photos (si cet e-mail échoue, la demande est perdue : on le signale)
+    await t.sendMail({
+      from, to: MAIL_TO, replyTo: `"${c.name.replace(/"/g, "")}" <${c.email}>`,
+      subject: `Demande de devis · ${typeLabel} · ${c.name}`,
+      text: `${typeLabel}\n${c.name} · ${c.email} · ${c.phone || "sans téléphone"}\n\n${c.msg}\n\n${photos.length} photo(s) jointe(s).`,
+      html: layout({
+        base, preheader: `${c.name} · ${typeLabel}`, title: "Nouvelle demande de devis",
+        intro: `<p style="margin:0">Une cliente demande un devis depuis le site. Répondez directement à cet e-mail pour lui écrire.</p>`,
+        rows: [["Type de demande", escMail(typeLabel)], ["Cliente", escMail(c.name)], ["E-mail", escMail(c.email)], ["Téléphone", escMail(c.phone || "-")], ["Photos jointes", String(photos.length)], ["Demande", escMail(c.msg).replace(/\n/g, "<br>")]],
+      }),
+      attachments: photos,
     });
   } catch (e) {
-    console.error("Génération du devis :", e.message);
-    return res.status(500).json({ error: "Le devis n'a pas pu être généré." });
+    console.error("Demande de devis non envoyée :", e.message);
+    return res.status(502).json({ error: "L'envoi a échoué." });
   }
-  const total = lines.reduce((s, l) => s + l.amount * l.qty, 0);
-  const hasService = lines.some((l) => l.minutes > 0);
-  const hasRetouche = lines.some((l) => !l.minutes);
-  const attachments = [{ filename: `${ref}.pdf`, content: pdf, contentType: "application/pdf" }];
-  let emailSent = false;
-  if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
-    const from = MAIL_FROM || SMTP_USER;
-    const t = getTransporter();
-    const rows = [["Devis", escMail(ref)], ["Prestations", lines.map((l) => escMail(l.name) + (l.qty > 1 ? ` × ${l.qty}` : "")).join("<br>")], ["Total", `<b>${escMail(eur(total))}</b> · TVA non applicable`], ["Valable jusqu'au", escMail(dateFr(validUntil))], ...(hasRetouche ? [["Délai de réalisation des retouches", "environ 1 semaine"]] : [])];
-    if (MAIL_TO) t.sendMail({
-      from, to: MAIL_TO, replyTo: `"${c.name.replace(/"/g, "")}" <${c.email}>`,
-      subject: `Demande de devis ${ref} · ${c.name}`,
-      text: `${c.name} (${c.email}, ${c.phone || "sans téléphone"}) a demandé un devis de ${eur(total)}.\n${lines.map((l) => "- " + l.name + (l.qty > 1 ? " x" + l.qty : "")).join("\n")}\n\n${note}`,
-      html: layout({
-        base, preheader: `${c.name} · ${eur(total)}`, title: "Nouvelle demande de devis",
-        intro: `<p style="margin:0">${escMail(c.name)} vient de demander un devis. Il lui a été envoyé automatiquement, et vous en trouvez une copie en pièce jointe.</p>`,
-        rows: [...rows, ["E-mail", escMail(c.email)], ["Téléphone", escMail(c.phone || "-")], ["Message", escMail(note || "-").replace(/\n/g, "<br>")]],
-      }),
-      attachments,
-    }).catch((e) => console.error("Notification de devis non envoyée :", e.message));
-    await t.sendMail({
-      from, to: c.email, replyTo: MAIL_TO || from,
-      subject: `Votre devis Aélia · ${ref}`,
-      text: `Bonjour ${c.name},\n\nVous trouverez votre devis (${eur(total)}) en pièce jointe, valable jusqu'au ${dateFr(validUntil)}.\n\n${hasService ? `Pour le valider, réservez votre créneau sur ${base} ou répondez simplement à cet e-mail.` : "Pour le valider, répondez simplement à cet e-mail : je vous indique comment me remettre vos vêtements (délai de réalisation : environ 1 semaine)."}\n\nÀ bientôt,\nLaësia · Aélia`,
-      html: layout({
-        base, preheader: `Votre devis ${ref} : ${eur(total)}`, title: "Votre devis est prêt",
-        intro: `<p style="margin:0">Bonjour ${escMail(c.name)},<br>merci de l'intérêt que vous portez à Aélia. Vous trouverez votre devis en pièce jointe (PDF).</p>`,
-        rows,
-        outro: hasService
-          ? `<p style="margin:0">Pour le valider, il vous suffit de réserver votre créneau en ligne, ou de répondre à cet e-mail pour toute question.</p>`
-          : `<p style="margin:0">Pour le valider, répondez simplement à cet e-mail : je vous indique alors comment me remettre vos vêtements. Comptez environ une semaine pour la réalisation des retouches.</p>`,
-        button: hasService ? { url: base + "/#prestations", label: "Réserver mon rendez-vous" } : undefined,
-      }),
-      attachments,
-    }).then(() => { emailSent = true; }).catch((e) => console.error("Devis non envoyé :", e.message));
-  }
-  await flushMail();
-  res.json({ ok: true, ref, total, emailSent, onlyRetouche: !hasService, pdf: pdf.toString("base64") });
+  // Accusé de réception pour la cliente (son échec ne remet pas en cause la demande)
+  let ackSent = false;
+  await t.sendMail({
+    from, to: c.email, replyTo: MAIL_TO,
+    subject: "J'ai bien reçu votre demande de devis · Aélia",
+    text: `Bonjour ${c.name},\n\nJ'ai bien reçu votre demande de devis (${typeLabel}) et je reviens vers vous très vite.${c.type === "retouche" ? "\nDélai de réalisation des retouches : environ une semaine après validation du devis." : ""}\n\nÀ bientôt,\nLaësia · Aélia`,
+    html: layout({
+      base, preheader: "Votre demande de devis est bien reçue", title: "Votre demande est bien reçue",
+      intro: `<p style="margin:0">Bonjour ${escMail(c.name)},<br>merci pour votre demande. Je l'étudie avec attention et je reviens vers vous très vite avec un devis.</p>`,
+      rows: [["Votre demande", escMail(typeLabel)], ["Photos transmises", String(photos.length)], ...delay, ["Votre message", escMail(c.msg).replace(/\n/g, "<br>")]],
+      note: "Vous pouvez répondre à cet e-mail pour ajouter des précisions.",
+    }),
+  }).then(() => { ackSent = true; }).catch((e) => console.error("Accusé de réception du devis non envoyé :", e.message));
+  res.json({ ok: true, ackSent });
 });
 
 // ---------- Gestion d'un rendez-vous par la cliente (lien signé reçu par e-mail) ----------

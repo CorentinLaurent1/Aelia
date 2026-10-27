@@ -13,9 +13,9 @@
   "dependencies": {
     "express": "^4.19.2",
     "luxon": "^3.7.2",
+    "multer": "^2.5.0",
     "node-ical": "^0.27.3",
     "nodemailer": "^6.9.14",
-    "pdfkit": "^0.20.2",
     "tsdav": "^2.5.0"
   }
 }
