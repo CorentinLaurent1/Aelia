@@ -7,6 +7,7 @@ const { computeSlots } = require("./lib/slots");
 const { createToken, readToken } = require("./lib/token");
 const { layout, esc: escMail } = require("./lib/email-template");
 const multer = require("multer");
+const db = require("./lib/db");
 const services = require("./config/services.json");
 const cfg = require("./config/availability.json");
 
@@ -54,7 +55,7 @@ const versioned = (html) => html.replace(/(?:\.\.\/|\/)?(assets\/(?:css|js)\/[\w
 const pageHtml = (name) => versioned(fs.readFileSync(path.join(__dirname, "pages", name), "utf8"));
 app.get("/pages/:name", (req, res, next) => {
   const name = path.basename(req.params.name);
-  if (!/^[\w-]+\.html$/.test(name) || !fs.existsSync(path.join(__dirname, "pages", name))) return next();
+  if (name === "admin.html" || !/^[\w-]+\.html$/.test(name) || !fs.existsSync(path.join(__dirname, "pages", name))) return next();
   res.type("html").send(pageHtml(name));
 });
 const siteUrl = (req) => (process.env.SITE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
@@ -69,7 +70,7 @@ app.get(["/index.html", "/pages/index.html"], (_req, res) => res.redirect(301, "
 // Validation de la propriété du site dans Google Search Console (à conserver)
 app.get("/googlebeec1be7b3d4485b.html", (_req, res) => res.type("html").send("google-site-verification: googlebeec1be7b3d4485b.html"));
 app.get("/robots.txt", (req, res) => {
-  res.type("text/plain").send(`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /rendez-vous/\n\nSitemap: ${siteUrl(req)}/sitemap.xml\n`);
+  res.type("text/plain").send(`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin\nDisallow: /rendez-vous/\n\nSitemap: ${siteUrl(req)}/sitemap.xml\n`);
 });
 app.get("/sitemap.xml", (req, res) => {
   const u = siteUrl(req);
@@ -345,22 +346,30 @@ app.post("/api/quote", (req, res, next) => {
   const t = getTransporter();
   const typeLabel = QUOTE_TYPES[c.type];
   const delay = c.type === "retouche" ? [["Délai de réalisation", "environ 1 semaine après validation du devis"]] : [];
+
+  // 1. Enregistrement dans le tableau de bord (la demande n'est jamais perdue)
+  let ref = "";
+  if (db.enabled()) {
+    try { ref = db.refOf(await db.insertQuote(c, photos)); } catch (e) { console.error("Enregistrement du devis :", e.message); }
+  }
+  // 2. E-mail pour vous, avec les photos
   try {
-    // Pour vous : la demande complète avec les photos (si cet e-mail échoue, la demande est perdue : on le signale)
     await t.sendMail({
       from, to: MAIL_TO, replyTo: `"${c.name.replace(/"/g, "")}" <${c.email}>`,
-      subject: `Demande de devis · ${typeLabel} · ${c.name}`,
+      subject: `Demande de devis${ref ? " " + ref : ""} · ${typeLabel} · ${c.name}`,
       text: `${typeLabel}\n${c.name} · ${c.email} · ${c.phone || "sans téléphone"}\n\n${c.msg}\n\n${photos.length} photo(s) jointe(s).`,
       html: layout({
         base, preheader: `${c.name} · ${typeLabel}`, title: "Nouvelle demande de devis",
         intro: `<p style="margin:0">Une cliente demande un devis depuis le site. Répondez directement à cet e-mail pour lui écrire.</p>`,
-        rows: [["Type de demande", escMail(typeLabel)], ["Cliente", escMail(c.name)], ["E-mail", escMail(c.email)], ["Téléphone", escMail(c.phone || "-")], ["Photos jointes", String(photos.length)], ["Demande", escMail(c.msg).replace(/\n/g, "<br>")]],
+        rows: [...(ref ? [["Référence", escMail(ref)]] : []), ["Type de demande", escMail(typeLabel)], ["Cliente", escMail(c.name)], ["E-mail", escMail(c.email)], ["Téléphone", escMail(c.phone || "-")], ["Photos jointes", String(photos.length)], ["Demande", escMail(c.msg).replace(/\n/g, "<br>")]],
+        button: ref ? { url: base + "/admin", label: "Ouvrir mon tableau de bord" } : undefined,
       }),
       attachments: photos,
     });
   } catch (e) {
     console.error("Demande de devis non envoyée :", e.message);
-    return res.status(502).json({ error: "L'envoi a échoué." });
+    // si elle est enregistrée, la demande n'est pas perdue : on la signale comme reçue
+    if (!ref) return res.status(502).json({ error: "L'envoi a échoué." });
   }
   // Accusé de réception pour la cliente (son échec ne remet pas en cause la demande)
   let ackSent = false;
@@ -371,11 +380,12 @@ app.post("/api/quote", (req, res, next) => {
     html: layout({
       base, preheader: "Votre demande de devis est bien reçue", title: "Votre demande est bien reçue",
       intro: `<p style="margin:0">Bonjour ${escMail(c.name)},<br>merci pour votre demande. Je l'étudie avec attention et je reviens vers vous très vite avec un devis.</p>`,
-      rows: [["Votre demande", escMail(typeLabel)], ["Photos transmises", String(photos.length)], ...delay, ["Votre message", escMail(c.msg).replace(/\n/g, "<br>")]],
+      rows: [...(ref ? [["Référence", escMail(ref)]] : []), ["Votre demande", escMail(typeLabel)], ["Photos transmises", String(photos.length)], ...delay, ["Votre message", escMail(c.msg).replace(/\n/g, "<br>")]],
       note: "Vous pouvez répondre à cet e-mail pour ajouter des précisions.",
     }),
   }).then(() => { ackSent = true; }).catch((e) => console.error("Accusé de réception du devis non envoyé :", e.message));
-  res.json({ ok: true, ackSent });
+  await flushMail();
+  res.json({ ok: true, ackSent, ref });
 });
 
 // ---------- Gestion d'un rendez-vous par la cliente (lien signé reçu par e-mail) ----------
@@ -463,6 +473,12 @@ async function handleCancel(req, res) {
   await flushMail();
   res.json({ ok: true });
 }
+
+// ---------- Espace responsable (tableau de bord) ----------
+require("./lib/admin-routes")(app, {
+  calendar, cfg, pageHtml, layout, esc: escMail, getTransporter, flushMail, MAIL_FROM, SMTP_USER, MAIL_TO, siteUrl, fmtDay,
+  mailConfigured: () => Boolean(SMTP_HOST && SMTP_USER && SMTP_PASS),
+});
 
 // Page 404 aux couleurs du site
 app.use((_req, res) => res.status(404).type("html").send(pageHtml("404.html")));

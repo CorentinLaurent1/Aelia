@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Espace responsable · Aélia</title>
+<link rel="icon" type="image/png" sizes="64x64" href="/assets/images/favicon-64.png">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/admin.css">
+</head>
+<body class="adm">
+<a class="skip-link" href="#contenu">Aller au contenu principal</a>
+
+<!-- Connexion -->
+<main id="login" class="adm-login" hidden>
+  <form id="login-form" class="adm-login__card">
+    <img src="/assets/images/monogramme.png" alt="" width="52" height="60">
+    <p class="eyebrow">Espace responsable</p>
+    <h1>Connexion</h1>
+    <p id="login-info" class="adm-muted"></p>
+    <label>Mot de passe
+      <input type="password" id="password" autocomplete="current-password" required>
+    </label>
+    <p class="form-status form-status--error" id="login-error" role="alert" hidden></p>
+    <button class="btn btn--lg" type="submit" id="login-submit">Se connecter</button>
+    <a class="adm-back" href="/">← Retour au site</a>
+  </form>
+</main>
+
+<!-- Application -->
+<div id="app" hidden>
+  <header class="adm-top">
+    <a href="/" class="logo" aria-label="Aélia, voir le site"><img class="logo__img" src="/assets/images/monogramme.png" alt="" width="36" height="42"><span>AÉLIA</span></a>
+    <nav aria-label="Sections de l'espace responsable" class="adm-tabs" id="tabs">
+      <button type="button" data-view="dashboard" aria-current="page">Tableau de bord</button>
+      <button type="button" data-view="quotes">Devis <span class="adm-badge" id="badge-quotes" hidden></span></button>
+      <button type="button" data-view="rdv">Rendez-vous</button>
+    </nav>
+    <div class="adm-top__actions">
+      <a class="adm-link" href="/" target="_blank" rel="noopener">Voir le site<span class="sr-only"> (nouvel onglet)</span></a>
+      <button type="button" class="btn btn--small btn--outline" id="logout">Déconnexion</button>
+    </div>
+  </header>
+
+  <main id="contenu" tabindex="-1" class="adm-main">
+    <p class="adm-notice" id="notice" role="status" hidden></p>
+
+    <section id="view-dashboard" aria-labelledby="h-dashboard">
+      <h1 id="h-dashboard">Tableau de bord</h1>
+      <div class="adm-stats" id="stats"></div>
+      <div class="adm-cols">
+        <section class="adm-panel" aria-labelledby="h-new"><h2 id="h-new">Nouvelles demandes de devis</h2><ul class="adm-list" id="list-new"></ul></section>
+        <section class="adm-panel" aria-labelledby="h-return"><h2 id="h-return">Retouches à rendre</h2><ul class="adm-list" id="list-return"></ul></section>
+        <section class="adm-panel" aria-labelledby="h-next"><h2 id="h-next">Prochains rendez-vous</h2><ul class="adm-list" id="list-next"></ul></section>
+      </div>
+    </section>
+
+    <section id="view-quotes" aria-labelledby="h-quotes" hidden>
+      <h1 id="h-quotes">Demandes de devis</h1>
+      <div class="adm-filters" id="filters" role="group" aria-label="Filtrer par statut"></div>
+      <ul class="adm-cards" id="quote-list"></ul>
+    </section>
+
+    <section id="view-rdv" aria-labelledby="h-rdv" hidden>
+      <h1 id="h-rdv">Rendez-vous à venir</h1>
+      <p class="adm-muted">Les réservations faites depuis le site, lues dans votre agenda iCloud (90 prochains jours).</p>
+      <ul class="adm-cards" id="rdv-list"></ul>
+    </section>
+  </main>
+</div>
+
+<!-- Détail d'une demande -->
+<dialog id="detail" aria-labelledby="d-title" class="adm-detail">
+  <button type="button" class="dialog__close" id="d-close"><span aria-hidden="true">×</span><span class="sr-only">Fermer</span></button>
+  <div class="adm-detail__body">
+    <p class="eyebrow" id="d-ref"></p>
+    <h2 id="d-title"></h2>
+    <p class="adm-meta" id="d-meta"></p>
+    <div class="adm-msg" id="d-message"></div>
+    <ul class="adm-photos" id="d-photos" aria-label="Photos jointes"></ul>
+    <form id="d-form" class="adm-form">
+      <label>Statut
+        <select id="d-status" name="status"></select>
+      </label>
+      <label>Montant du devis (€)
+        <input type="number" id="d-amount" name="amount" min="0" max="100000" step="0.01" inputmode="decimal">
+      </label>
+      <label class="adm-form__wide">Note privée
+        <textarea id="d-note" name="note" rows="3" maxlength="4000" placeholder="Mesures, accord oral, remarques… (invisible pour la cliente)"></textarea>
+      </label>
+      <p class="adm-muted" id="d-due"></p>
+      <p class="form-status" id="d-status-msg" role="status" aria-live="polite" hidden></p>
+      <div class="adm-actions">
+        <button type="submit" class="btn">Enregistrer</button>
+        <button type="button" class="btn btn--outline" id="d-done">Marquer comme rendu</button>
+        <a class="btn btn--outline" id="d-mail" href="#">Répondre par e-mail</a>
+        <button type="button" class="adm-danger" id="d-delete">Supprimer</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<script src="/assets/js/admin.js" defer></script>
+</body>
+</html>
